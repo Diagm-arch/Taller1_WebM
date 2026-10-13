@@ -40,4 +40,35 @@ document.addEventListener('DOMContentLoaded', () => {
     c.style.transition = 'opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
     observer.observe(c);
   });
+  
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px); 
+  z-index: -1;
+  pointer-events: none; 
+}
+
+body::before {
+  top: -20vh;
+  left: -10vw;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(120, 119, 198, 0.08) 0%, transparent 60%);
+  animation: floatAmbient 20s infinite alternate ease-in-out;
+}
+body::after {
+  bottom: -20vh;
+  right: -10vw;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
+  animation: floatAmbient 25s infinite alternate-reverse ease-in-out;
+}
+
+@keyframes floatAmbient {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(10vw, 5vh) scale(1.1); }
+}
 });
