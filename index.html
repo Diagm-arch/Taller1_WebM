@@ -2,116 +2,107 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AERO-1 | Pure Sound Architecture</title>
-  <!-- Ruta hacia assets/css/styles.css -->
-  <link rel="stylesheet" href="assets/css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>POTATO DEX - PS1 Demo Disc</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/custom-animations.css">
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
-<body>
+<body class="bg-black text-white overflow-hidden select-none w-screen h-screen relative">
 
-  <!-- Barra de navegación fija con efecto glassmorphism -->
-  <nav class="navbar">
-    <div class="nav-content">
-      <a href="#" class="logo">AERO<span>(1)</span></a>
-      <div class="nav-links">
-        <a href="#specs">Especificaciones</a>
-        <a href="#design">Diseño</a>
-        <a href="assets/img/imagenes.html" class="nav-sublink">Galería</a>
-        <a href="#buy" class="btn-nav">Reservar</a>
+  <!-- CAPA 1: Escena 3D (Papa al centro + Anillo de Recetas) -->
+  <canvas id="webgl-canvas" class="fixed top-0 left-0 w-full h-full z-0"></canvas>
+
+  <!-- CAPA 2: Efecto televisor CRT -->
+  <div class="scanlines pointer-events-none fixed inset-0 z-10"></div>
+
+  <!-- CAPA 3: Efecto de Transición de Combate (Flash de entrada a minijuego) -->
+  <div id="transition-overlay" class="pointer-events-none fixed inset-0 z-40 opacity-0 bg-white"></div>
+
+  <!-- CAPA 4: Interfaz Principal (HUD) -->
+<!-- CAPA 4: Interfaz Principal (Compacta en móvil, Panel lateral en PC) -->
+  <main id="ui-layer" class="relative z-20 w-full h-full pointer-events-none flex flex-col justify-between p-2 md:p-6">
+    
+    <!-- Barra Superior Compacta -->
+    <!-- Barra Superior con Controles de Radio DnB -->
+    <header class="flex justify-between items-start gap-2">
+      <div class="ps1-box px-2.5 py-1 md:px-4 md:py-2 pointer-events-auto">
+        <h1 class="text-lg md:text-3xl text-yellow-400 tracking-wider leading-none">PROYECTO: SOLANUM</h1>
+        <p class="text-xs md:text-sm text-cyan-300 leading-tight mt-0.5">Scroll / Desliza: Rotar | Clic: Seleccionar</p>
       </div>
-    </div>
-  </nav>
+      
+      <div class="flex items-start gap-2 pointer-events-auto shrink-0">
+        <!-- Reproductor Atmospheric DnB -->
+        <div class="ps1-box px-2.5 py-1 md:px-3 md:py-2 flex items-center gap-2">
+          <button id="btn-bgm-toggle" class="text-xs md:text-base text-yellow-300 hover:text-white">
+            [ ▶ BGM: OFF ]
+          </button>
+          <button id="btn-bgm-next" class="text-xs md:text-base text-cyan-300 hover:text-white border-l border-blue-400/40 pl-2" title="Siguiente canción (Fade)">
+            ⏭
+          </button>
+        </div>
 
-  <!-- Hero Section -->
-  <header class="hero">
-    <div class="container hero-content">
-      <span class="badge">Lanzamiento Oficial 2026</span>
-      <h1 class="headline">Silencio absoluto.<br>Precisión acústica.</h1>
-      <p class="subheadline">
-        Ingeniería acústica de transductores de grafeno con cancelación de ruido adaptativa en un chasis de aluminio aeroespacial.
-      </p>
-
-      <div class="cta-group">
-        <a href="#buy" class="btn btn-primary">Adquirir por $249 USD</a>
-        <a href="#specs" class="btn btn-secondary">Explorar ingeniería &darr;</a>
-      </div>
-
-      <!-- Representación visual del producto -->
-      <div class="product-showcase">
-        <div class="product-card">
-          <div class="glow-effect"></div>
-          <div class="mockup-circle">
-            <span class="mockup-label">AERO-1 AUDIO CORE</span>
-          </div>
+        <div class="ps1-box px-2.5 py-1 md:px-4 md:py-2 text-right">
+          <span class="text-[10px] md:text-xs text-gray-400 block leading-none">ARCHIVOS</span>
+          <span id="unlock-counter" class="text-base md:text-2xl text-green-400 font-bold leading-tight">0 / 4</span>
         </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Métricas clave de rendimiento -->
-  <section class="stats-section">
-    <div class="container stats-grid">
-      <div class="stat-card">
-        <h3>42 hrs</h3>
-        <p>Autonomía total con estuche de titanio</p>
-      </div>
-      <div class="stat-card">
-        <h3>-48 dB</h3>
-        <p>Aislamiento acústico de fase activa</p>
-      </div>
-      <div class="stat-card">
-        <h3>24-bit</h3>
-        <p>Transmisión sin pérdida a 96 kHz</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Grid de especificaciones -->
-  <section id="specs" class="specs-section">
-    <div class="container">
-      <div class="section-header">
-        <h2>Ingeniería sin concesiones.</h2>
-        <p>Cada milímetro fue optimizado para desaparecer mientras escuchas.</p>
+    <!-- Panel de Información: Lateral derecho en PC, barra inferior pequeña en Móvil -->
+    <section class="ps1-box w-full md:w-80 lg:w-96 md:my-auto md:ml-auto p-2.5 md:p-5 pointer-events-auto text-left flex flex-col gap-1.5 md:gap-3">
+      <div class="flex items-center justify-between border-b border-blue-400/40 pb-1">
+        <span id="selected-author" class="text-[11px] md:text-xs text-cyan-300 uppercase tracking-widest">SISTEMA CENTRAL</span>
+        <span id="selected-index-badge" class="text-[11px] md:text-xs bg-blue-950 px-1.5 py-0.5 text-yellow-300 border border-blue-500">ORIGEN</span>
       </div>
 
-      <div class="features-grid">
-        <article class="feature-card large">
-          <span class="card-tag">Transductor Dinámico</span>
-          <h3>Driver de 11 mm en nanografeno</h3>
-          <p>Ofrece graves controlados sin distorsión armónica, preservando texturas acústicas reales incluso a altos volúmenes.</p>
-        </article>
+      <h2 id="selected-title" class="text-lg md:text-2xl text-yellow-300 leading-none">
+        [ PAPA CRUDA ]
+      </h2>
 
-        <article class="feature-card">
-          <span class="card-tag">Resistencia</span>
-          <h3>Certificación IP54</h3>
-          <p>Protección contra polvo y salpicaduras para entrenamientos o uso en exterior.</p>
-        </article>
+      <p id="selected-desc" class="text-xs md:text-base text-gray-200 leading-snug line-clamp-3 md:line-clamp-none">
+        El tubérculo base. Gira la rueda o haz clic en un signo "???" para ver sus evoluciones.
+      </p>
 
-        <article class="feature-card">
-          <span class="card-tag">Latencia</span>
-          <h3>Modo Low-Lag 38ms</h3>
-          <p>Sincronización milimétrica para audio espacial, gaming y contenido multimedia.</p>
-        </article>
+      <button id="btn-action" class="hidden w-full bg-red-700 hover:bg-red-600 border border-white py-1.5 px-3 text-sm md:text-lg text-white active:scale-95 transition text-center mt-1">
+        ▶ INICIAR DESAFÍO
+      </button>
+    </section>
+
+  </main>
+
+  <!-- CAPA 5: Contenedor Modal para los Minijuegos (Oculto hasta que le den al botón) -->
+  <section id="minigame-modal" class="hidden fixed inset-0 z-30 bg-black/95 flex items-center justify-center p-2 md:p-6">
+    <div class="ps1-box w-full max-w-3xl h-[85vh] flex flex-col justify-between p-4 md:p-6 relative">
+      
+      <!-- Cabecera del Minijuego -->
+      <div class="flex justify-between items-center border-b-2 border-gray-500 pb-2">
+        <h3 id="minigame-title" class="text-xl md:text-3xl text-yellow-400">DESAFÍO #1</h3>
+        <button id="btn-exit-game" class="text-red-400 hover:text-red-300 text-lg md:text-2xl px-2">[ HUIR ]</button>
       </div>
+
+      <!-- Escenario donde cada compañero inyecta su juego -->
+      <div id="minigame-stage" class="flex-1 my-4 bg-black border-2 border-gray-700 relative overflow-hidden flex items-center justify-center">
+        <!-- El código de game-ff7.js o game-survivor.js se dibuja aquí adentro -->
+      </div>
+
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container footer-content">
-      <p>&copy; 2026 AERO Systems Inc. Diseñado para audiófilos.</p>
-      <div class="footer-links">
-        <a href="#">Privacidad</a>
-        <a href="#">Términos</a>
-        <a href="assets/img/imagenes.html">Recursos</a>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Ruta hacia assets/js/script.js -->
-  <script src="assets/js/script.js"></script>
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,37 @@
+/* Aplicar la fuente pixelada a todo el documento */
+body {
+  font-family: 'VT323', monospace;
+  /* Evita el rebote de página en celulares al deslizar el dedo (clave para usar el scroll en la linterna) */
+  overscroll-behavior: none;
+  touch-action: none;
+  /* Desactiva el suavizado de fuentes para que se vea más retro */
+  -webkit-font-smoothing: none;
+}
+
+/* Estilo de caja de diálogo clásica de RPG de PS1 (tipo Final Fantasy VII / Resident Evil) */
+.ps1-box {
+  background: linear-gradient(180deg, rgba(0, 0, 110, 0.92) 0%, rgba(0, 0, 40, 0.96) 100%);
+  border: 3px solid #d4d4d8;
+  box-shadow: 
+    inset -3px -3px 0px #52525b,
+    inset 3px 3px 0px #ffffff,
+    0px 6px 0px rgba(0, 0, 0, 0.7);
+  text-shadow: 2px 2px 0px #000000;
+}
+
+/* Efecto de líneas de televisor de tubo (CRT Scanlines) */
+.scanlines {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(0, 0, 0, 0.35) 50%,
+    rgba(0, 0, 0, 0.35)
+  );
+  background-size: 100% 4px;
+}
+
+/* Truco de oro para PS1: bajar ligeramente la resolución percibida del canvas 3D */
+#webgl-canvas {
+  image-rendering: pixelated;
+}
