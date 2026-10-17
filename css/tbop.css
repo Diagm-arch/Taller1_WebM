@@ -1,0 +1,54 @@
+/* Estilos para The Binding of Papa dentro de minigame-stage */
+#minigame-stage {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background-color: #120d0a;
+}
+
+#papa-root {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  text-shadow: none !important;
+}
+
+/* Evita que herede las sombras del menú principal de PS1 */
+#papa-root * {
+  text-shadow: none !important;
+}
+
+#papa-root .font-pixel {
+  font-family: 'VT323', monospace;
+  letter-spacing: 0.05em;
+}
+
+#papa-root .isaac-panel {
+  background: rgba(20, 14, 10, 0.9);
+  border: 2px solid #5c4033;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+}
+
+#papa-root .action-btn {
+  background: radial-gradient(circle at 30% 30%, #f59e0b, #b45309);
+  border: 2px solid #fde68a;
+  box-shadow: 0 4px 0 #78350f, 0 6px 12px rgba(0,0,0,0.6);
+  transition: transform 0.08s;
+}
+
+#papa-root .action-btn:active {
+  transform: translateY(3px) scale(0.96);
+  box-shadow: 0 1px 0 #78350f;
+}
+
+@keyframes boss-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+#papa-root .boss-alert-box {
+  animation: boss-pulse 0.8s infinite ease-in-out;
+}
