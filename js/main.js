@@ -1,14 +1,13 @@
-import { ThreeHub } from './three-hub.js?v=9';
-import { AudioManager } from './audio-manager.js?v=9';
-import { FF7Minigame } from './minigames/ff7/game-ff7.js?v=9';
-import { BlasphemousPotatoGame } from './minigames/BLASFEPAPA/game-blasfepapa.js?v=9';
-import { startPapaGame, stopPapaGame } from './minigames/tbop/tbop.js?v=9';
+import { ThreeHub } from './three-hub.js?v=11';
+import { AudioManager } from './audio-manager.js?v=11';
+import { FF7Minigame } from './minigames/ff7/game-ff7.js?v=11';
+import { BlasphemousPotatoGame } from './minigames/BLASFEPAPA/game-blasfepapa.js?v=11';
+import { startPapaGame, stopPapaGame } from './minigames/tbop/tbop.js?v=11';
+import { RECIPES } from './recipes.js?v=11';
 
-// 1. LISTA DE CANCIONES (Guarda tus archivos .mp3 en ./assets/audio/)
+// 1. MIX DE FONDO (guarda el .mp3 en ./assets/audio/)
 const dnbPlaylist = [
-  { title: 'DnB Track 01', src: './assets/audio/dnb-track-1.mp3' },
-  { title: 'DnB Track 02', src: './assets/audio/dnb-track-2.mp3' },
-  { title: 'DnB Track 03', src: './assets/audio/dnb-track-3.mp3' }
+  { title: 'DnB Mix', src: './assets/audio/dnb-track-1.mp3' } // un solo mix largo: ajusta el nombre del archivo si es otro
 ];
 
 const bgm = new AudioManager(dnbPlaylist, 3000); // 3 seg de Fade In / Fade Out
@@ -17,8 +16,8 @@ const bgm = new AudioManager(dnbPlaylist, 3000); // 3 seg de Fade In / Fade Out
 const titleEl = document.getElementById('selected-title');
 const descEl = document.getElementById('selected-desc');
 const btnAction = document.getElementById('btn-action');
+const btnRecipe = document.getElementById('btn-recipe');
 const btnBgmToggle = document.getElementById('btn-bgm-toggle');
-const btnBgmNext = document.getElementById('btn-bgm-next');
 
 // Referencias del Modal de Minijuegos y Transiciones (Sin duplicados)
 const modal = document.getElementById('minigame-modal');
@@ -53,6 +52,7 @@ function handleNodeSelection(recipe, index) {
     titleEl.className = 'text-lg md:text-2xl text-yellow-300 leading-none';
     descEl.textContent = 'El tubérculo base. Gira la rueda o haz clic en un signo "?" para ver sus evoluciones.';
     btnAction.classList.add('hidden');
+    btnRecipe.classList.add('hidden');
     return;
   }
 
@@ -64,14 +64,16 @@ function handleNodeSelection(recipe, index) {
     titleEl.className = 'text-sm sm:text-lg md:text-2xl text-green-400 leading-tight truncate';
     descEl.textContent = recipe.unlockedDesc;
     btnAction.textContent = '✔ JUGAR DE NUEVO';
-    btnAction.className = 'shrink-0 w-full sm:w-auto bg-blue-700 hover:bg-blue-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition';
+    btnAction.className = 'flex-1 sm:flex-none bg-blue-700 hover:bg-blue-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition';
     btnAction.classList.remove('hidden');
+    btnRecipe.classList.remove('hidden'); // la receta solo se ve tras vencer el juego
   } else {
     titleEl.textContent = recipe.lockedName;
     titleEl.className = 'text-sm sm:text-lg md:text-2xl text-red-400 leading-tight truncate';
     descEl.textContent = recipe.lockedDesc;
+    btnRecipe.classList.add('hidden');
     btnAction.textContent = `▶ DESBLOQUEAR JUEGO`;
-    btnAction.className = 'ps1-blink shrink-0 w-full sm:w-auto bg-red-700 hover:bg-red-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition';
+    btnAction.className = 'ps1-blink flex-1 sm:flex-none bg-red-700 hover:bg-red-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition';
     btnAction.classList.remove('hidden');
   }
 }
@@ -81,6 +83,70 @@ function updateUnlockCounterUI() {
   const unlockedTotal = hub.recipesData.filter(r => r.unlocked).length;
   unlockCounter.textContent = `${unlockedTotal} / ${hub.recipesData.length}`;
 }
+
+// =========================================================================
+// RECETARIO (solo accesible con la receta desbloqueada)
+// =========================================================================
+const recipeModal = document.getElementById('recipe-modal');
+const btnRecipeClose = document.getElementById('btn-recipe-close');
+const isRecipeOpen = () => !!recipeModal && !recipeModal.classList.contains('hidden');
+
+function openRecipe() {
+  if (!activeRecipe || !activeRecipe.unlocked) return;
+  if (!modal.classList.contains('hidden') || isTransitioning) return;
+  const data = RECIPES[activeRecipe.id];
+  if (!data) return;
+
+  document.getElementById('recipe-badge').textContent = `RECETA #0${activeNodeIndex + 1} — ${activeRecipe.author.toUpperCase()}`;
+  document.getElementById('recipe-title').textContent = data.title;
+  document.getElementById('recipe-meta').textContent = data.meta;
+  document.getElementById('recipe-tip').textContent = `★ TIP: ${data.tip}`;
+
+  const ingredientsEl = document.getElementById('recipe-ingredients');
+  ingredientsEl.replaceChildren(...data.ingredients.map((text) => {
+    const li = document.createElement('li');
+    li.textContent = `▸ ${text}`;
+    return li;
+  }));
+
+  const stepsEl = document.getElementById('recipe-steps');
+  stepsEl.replaceChildren(...data.steps.map((text, i) => {
+    const li = document.createElement('li');
+    li.className = 'flex gap-2';
+    const num = document.createElement('span');
+    num.className = 'text-yellow-300 shrink-0';
+    num.textContent = String(i + 1).padStart(2, '0');
+    const body = document.createElement('span');
+    body.textContent = text;
+    li.append(num, body);
+    return li;
+  }));
+
+  document.getElementById('recipe-scroll').scrollTop = 0;
+  recipeModal.classList.remove('hidden');
+  btnRecipeClose.focus();
+}
+
+function closeRecipe() {
+  recipeModal.classList.add('hidden');
+}
+
+btnRecipe.addEventListener('click', () => {
+  btnRecipe.blur();
+  openRecipe();
+});
+btnRecipeClose.addEventListener('click', closeRecipe);
+recipeModal.addEventListener('click', (e) => {
+  if (e.target === recipeModal) closeRecipe(); // clic en el fondo oscuro
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && isRecipeOpen()) closeRecipe();
+});
+
+// El hub escucha pointer/wheel/touch en window: mientras el recetario está abierto no debe girar ni seleccionar nada detrás
+['pointerdown', 'pointerup', 'wheel', 'touchstart', 'touchend'].forEach((evt) => {
+  recipeModal.addEventListener(evt, (e) => e.stopPropagation(), { passive: true });
+});
 
 // Cierra el modal y limpia el minijuego en ejecución
 function closeMinigameModal() {
@@ -209,7 +275,7 @@ function launchMinigame() {
 // Botón "DESBLOQUEAR JUEGO" / "JUGAR DE NUEVO"
 btnAction.addEventListener('click', () => {
   btnAction.blur(); // Quita el foco para que Enter no lo reactive durante la pelea
-  if (!activeRecipe || isTransitioning || !modal.classList.contains('hidden')) return;
+  if (!activeRecipe || isTransitioning || !modal.classList.contains('hidden') || isRecipeOpen()) return;
 
   // Si es FF7 o Survivor y existe bgm.suspend(), lo usamos.
   // Para 'masher' (TBOP) y 'jacket' (Blasfepapa), sus propias clases de audio pausan y restauran bgm.
@@ -303,17 +369,12 @@ btnBgmToggle.addEventListener('click', (e) => {
   if (!playing) btnBgmToggle.textContent = '[ ▶ BGM: OFF ]';
 });
 
-btnBgmNext.addEventListener('click', (e) => {
-  e.stopPropagation();
-  bgm.nextTrack();
-});
-
 // =========================================================================
 // EVENTOS DE SCROLL (PC) Y SWIPE (MÓVIL)
 // =========================================================================
 let lastScrollTime = 0;
 window.addEventListener('wheel', (e) => {
-  if (!hasEntered || !modal.classList.contains('hidden') || isTransitioning) return;
+  if (!hasEntered || isRecipeOpen() || !modal.classList.contains('hidden') || isTransitioning) return;
   const now = Date.now();
   if (now - lastScrollTime < 350) return;
   lastScrollTime = now;
@@ -322,12 +383,12 @@ window.addEventListener('wheel', (e) => {
 
 let touchStartX = 0;
 window.addEventListener('touchstart', (e) => {
-  if (!hasEntered || !modal.classList.contains('hidden') || isTransitioning) return;
+  if (!hasEntered || isRecipeOpen() || !modal.classList.contains('hidden') || isTransitioning) return;
   touchStartX = e.touches[0].clientX;
 }, { passive: true });
 
 window.addEventListener('touchend', (e) => {
-  if (!hasEntered || !modal.classList.contains('hidden') || isTransitioning) return;
+  if (!hasEntered || isRecipeOpen() || !modal.classList.contains('hidden') || isTransitioning) return;
   const deltaX = touchStartX - e.changedTouches[0].clientX;
   if (Math.abs(deltaX) > 45) {
     hub.rotateRing(deltaX);

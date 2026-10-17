@@ -49,9 +49,6 @@
           <button id="btn-bgm-toggle" class="text-[11px] sm:text-xs md:text-base text-yellow-300 hover:text-white">
             [ ▶ BGM: OFF ]
           </button>
-          <button id="btn-bgm-next" class="text-[11px] sm:text-xs md:text-base text-cyan-300 hover:text-white border-l border-blue-400/40 pl-1.5 sm:pl-2">
-            ⏭
-          </button>
         </div>
 
         <div class="ps1-box px-2 py-1 md:px-4 md:py-2 text-right">
@@ -78,9 +75,14 @@
             </p>
           </div>
 
-          <button id="btn-action" class="hidden shrink-0 sm:w-auto w-full bg-red-700 hover:bg-red-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition">
-            ▶ DESBLOQUEAR JUEGO
-          </button>
+          <div id="action-buttons" class="flex gap-1.5 sm:gap-2 shrink-0 w-full sm:w-auto">
+            <button id="btn-action" class="hidden flex-1 sm:flex-none bg-red-700 hover:bg-red-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition">
+              ▶ DESBLOQUEAR JUEGO
+            </button>
+            <button id="btn-recipe" class="hidden flex-1 sm:flex-none bg-green-700 hover:bg-green-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition">
+              📖 VER RECETA
+            </button>
+          </div>
         </div>
       </div>
     </footer>
@@ -91,6 +93,34 @@
       [ ◀ HUB ]
     </button>
     <div id="minigame-stage" class="w-full h-full relative overflow-hidden flex items-center justify-center"></div>
+  </section>
+
+  <!-- MODAL DE RECETA: se abre desde "VER RECETA" (solo recetas desbloqueadas) -->
+  <section id="recipe-modal" class="hidden fixed inset-0 z-[55] bg-black/90 flex items-center justify-center p-2 sm:p-4 h-[100dvh]">
+    <div class="ps1-box w-full max-w-4xl max-h-full flex flex-col">
+      <div class="flex items-start justify-between gap-2 border-b border-blue-400/40 p-2 sm:p-3 shrink-0">
+        <div class="min-w-0">
+          <p id="recipe-badge" class="text-[10px] sm:text-xs text-cyan-300 tracking-widest leading-tight">RECETA</p>
+          <h2 id="recipe-title" class="text-base sm:text-xl md:text-3xl text-yellow-300 leading-tight">RECETA</h2>
+          <p id="recipe-meta" class="text-[10px] sm:text-xs md:text-sm text-gray-300 leading-tight mt-0.5"></p>
+        </div>
+        <button id="btn-recipe-close" class="shrink-0 border border-white bg-red-700 hover:bg-red-600 px-2 py-1 sm:px-3 text-xs sm:text-base text-white active:scale-95 transition">
+          ✕ CERRAR
+        </button>
+      </div>
+
+      <div id="recipe-scroll" class="min-h-0 overflow-y-auto p-2 sm:p-3 grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2 sm:gap-5">
+        <div>
+          <h3 class="text-xs sm:text-sm md:text-lg text-cyan-300 tracking-widest border-b border-blue-400/40 mb-1">INGREDIENTES</h3>
+          <ul id="recipe-ingredients" class="flex flex-col gap-0.5 text-[13px] sm:text-base md:text-xl text-gray-100 leading-tight"></ul>
+        </div>
+        <div>
+          <h3 class="text-xs sm:text-sm md:text-lg text-cyan-300 tracking-widest border-b border-blue-400/40 mb-1">PREPARACIÓN</h3>
+          <ol id="recipe-steps" class="flex flex-col gap-1 text-[13px] sm:text-base md:text-xl text-gray-100 leading-tight"></ol>
+          <p id="recipe-tip" class="mt-2 text-[12px] sm:text-sm md:text-lg text-green-400 leading-tight"></p>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- PANTALLA DE ENTRADA: espera a que la música esté lista y aporta el gesto necesario para el audio -->
@@ -108,6 +138,6 @@
     </button>
   </div>
 
-  <script type="module" src="./js/main.js?v=5"></script>
+  <script type="module" src="./js/main.js?v=11"></script>
 </body>
 </html>

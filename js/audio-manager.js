@@ -22,6 +22,9 @@ export class AudioManager {
     this.activeDeck = this.deckA;
     this.nextDeck = this.deckB;
 
+    // Con una sola pista no hay a qué cambiar: se repite en bucle
+    this.deckA.loop = this.deckB.loop = this.playlist.length <= 1;
+
     this.setupDeckEvents(this.deckA);
     this.setupDeckEvents(this.deckB);
   }
@@ -83,6 +86,7 @@ export class AudioManager {
 
   setupDeckEvents(deck) {
     deck.addEventListener('timeupdate', () => {
+      if (this.playlist.length <= 1) return;
       if (deck !== this.activeDeck || !this.isPlaying || this.isFading || !deck.duration) return;
 
       // Si quedan menos de (fadeDuration) ms para que acabe la pista, inicia el crossfade
@@ -94,7 +98,7 @@ export class AudioManager {
 
     // Respaldo por si el navegador no detecta la duración a tiempo
     deck.addEventListener('ended', () => {
-      if (deck === this.activeDeck && !this.isFading && this.isPlaying) {
+      if (this.playlist.length > 1 && deck === this.activeDeck && !this.isFading && this.isPlaying) {
         this.nextTrack();
       }
     });
@@ -148,7 +152,7 @@ export class AudioManager {
   }
 
   nextTrack() {
-    if (this.playlist.length === 0 || this.isFading) return;
+    if (this.playlist.length <= 1 || this.isFading) return;
 
     this.currentIndex = (this.currentIndex + 1) % this.playlist.length;
     const nextSong = this.playlist[this.currentIndex];
