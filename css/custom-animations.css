@@ -8,11 +8,63 @@
   80% { opacity: 1; background-color: #ffffff; }
   100% { opacity: 0; background-color: transparent; }
 }
+/* 1. Distorsión de cámara sobre el Hub 3D (Zoom In + Vortex Swirl + Blur) */
+@keyframes ff7-vortex-warp {
+  0% {
+    transform: scale(1) rotate(0deg);
+    filter: blur(0px) contrast(1);
+  }
+  20% {
+    transform: scale(1.15) rotate(-6deg);
+    filter: blur(2px) contrast(2) invert(0.8);
+  }
+  40% {
+    transform: scale(1.05) rotate(8deg);
+    filter: blur(1px) contrast(1.5);
+  }
+  100% {
+    transform: scale(4.2) rotate(260deg);
+    filter: blur(14px) contrast(3);
+    opacity: 0;
+  }
+}
+/* Texto LIMIT cambiando de colores continuamente estilo FF7 */
+@keyframes ff7-limit-rainbow {
+  0%   { color: #ff6b6b; }
+  25%  { color: #feca57; }
+  50%  { color: #48dbfb; }
+  75%  { color: #ff9ff3; }
+  100% { color: #54a0ff; }
+}
+
+/* 2. Destellos rápidos de encuentro aleatorio + Fade Out a negro */
+@keyframes ff7-flash-fade {
+  0%   { opacity: 0; background: #ffffff; }
+  10%  { opacity: 0.95; background: #ffffff; }
+  20%  { opacity: 0; background: transparent; }
+  30%  { opacity: 0.9; background: #ffffff; }
+  42%  { opacity: 0; background: #000000; }
+  75%  { opacity: 0.4; background: #000000; }
+  92%  { opacity: 1; background: #000000; }
+  100% { opacity: 1; background: #000000; }
+}
+
+.ff7-warp-active {
+  animation: ff7-vortex-warp 1.35s cubic-bezier(0.55, 0.05, 0.68, 0.19) forwards;
+}
+
+.ff7-overlay-active {
+  animation: ff7-flash-fade 1.35s linear forwards;
+}
 
 .trigger-encounter {
   animation: ps1-encounter 0.9s steps(4) forwards;
 }
 
+.ff7-limit-ready {
+  animation: ff7-limit-rainbow 0.45s steps(2) infinite;
+  font-weight: bold;
+}
 /* Parpadeo clásico estilo "PRESS START" de consola */
 @keyframes blink-ps1 {
   0%, 49% { opacity: 1; }

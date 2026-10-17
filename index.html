@@ -85,22 +85,15 @@
 
   </main>
 
-  <!-- CAPA 5: Contenedor Modal para los Minijuegos (Oculto hasta que le den al botón) -->
-  <section id="minigame-modal" class="hidden fixed inset-0 z-30 bg-black/95 flex items-center justify-center p-2 md:p-6">
-    <div class="ps1-box w-full max-w-3xl h-[85vh] flex flex-col justify-between p-4 md:p-6 relative">
-      
-      <!-- Cabecera del Minijuego -->
-      <div class="flex justify-between items-center border-b-2 border-gray-500 pb-2">
-        <h3 id="minigame-title" class="text-xl md:text-3xl text-yellow-400">DESAFÍO #1</h3>
-        <button id="btn-exit-game" class="text-red-400 hover:text-red-300 text-lg md:text-2xl px-2">[ HUIR ]</button>
-      </div>
+  <!-- CAPA 5: Escenario a Pantalla Completa para los Minijuegos (Sin bordes de popup) -->
+  <section id="minigame-modal" class="hidden fixed inset-0 z-30 bg-black w-screen h-screen overflow-hidden">
+    <!-- Botón flotante discreto arriba a la izquierda por si un compañero no pone botón de salida -->
+    <button id="btn-exit-game" class="fixed top-2 left-2 z-50 ps1-box px-3 py-1 text-red-400 hover:text-white text-sm md:text-lg">
+      [ ◀ VOLVER AL HUB ]
+    </button>
 
-      <!-- Escenario donde cada compañero inyecta su juego -->
-      <div id="minigame-stage" class="flex-1 my-4 bg-black border-2 border-gray-700 relative overflow-hidden flex items-center justify-center">
-        <!-- El código de game-ff7.js o game-survivor.js se dibuja aquí adentro -->
-      </div>
-
-    </div>
+    <!-- Contenedor 100% Fullscreen donde corre el juego -->
+    <div id="minigame-stage" class="w-full h-full relative overflow-hidden flex items-center justify-center"></div>
   </section>
 
   <script type="module" src="./js/main.js"></script>
