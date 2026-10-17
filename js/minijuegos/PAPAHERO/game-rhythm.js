@@ -30,88 +30,73 @@ export class RhythmPotatoGame {
     this.ctx = this.canvas.getContext('2d');
 
     // =========================================================================
-    // CONFIGURACIÓN DE LOS 3 NIVELES (MAÑANA -> GOLDEN HOUR -> NOCHE)
+    // CONFIGURACIÓN: MULTIPISTA AUDIO (.ogg) + SOLO GUITARRA EN NOTAS (.chart)
     // =========================================================================
-    this.levels = [
-      {
-        number: 1,
-        name: 'NIVEL 1: DESAYUNO SOLEADO',
-        timeOfDay: 'morning',
-        audioSrc: './assets/rhythmGame/song1.ogg',
-        chartSrc: './assets/rhythmGame/notes1.chart',
-        difficulty: 'ExpertSingle', // Busca ExpertSingle, si no existe baja a Hard/Medium/Easy
-        approachTime: 1.55          // Velocidad de caída (menor número = más rápido)
-      },
-      {
-        number: 2,
-        name: 'NIVEL 2: GOLDEN HOUR CRUJIENTE',
-        timeOfDay: 'afternoon',
-        audioSrc: './assets/rhythmGame/song2.ogg',
-        chartSrc: './assets/rhythmGame/notes2.chart',
-        difficulty: 'ExpertSingle',
-        approachTime: 1.38
-      },
-      {
-        number: 3,
-        name: 'NIVEL 3: TURNO DE MEDIANOCHE',
-        timeOfDay: 'night',
-        audioSrc: './assets/rhythmGame/song3.ogg',
-        chartSrc: './assets/rhythmGame/notes3.chart',
-        difficulty: 'ExpertSingle',
-        approachTime: 1.22
-      }
-    ];
+    this.songConfig = {
+      name: 'SOLO DE GUITARRA (BANDA COMPLETA)',
+      audioSources: [
+        './assets/rhythmGame/guitar.ogg',
+        './assets/rhythmGame/bass.ogg',
+        './assets/rhythmGame/drums.ogg',
+        './assets/rhythmGame/rhythm.ogg',
+        './assets/rhythmGame/vocals.ogg'
+      ],
+      chartSrc: './assets/rhythmGame/notes1.chart',
+      difficulty: 'ExpertSingle', // Lee solo la pista de guitarra para las notas
+      approachTime: 1.45
+    };
 
-    this.currentLevelIndex = 0;
+    this.timeOfDayMode = 'auto'; // Cambia Mañana -> Golden Hour -> Noche automáticamente
     this.currentStageTime = 'morning';
 
-    // Controles (4 quemadores: D, F, J, K)
-    this.laneKeys = ['KeyD', 'KeyF', 'KeyJ', 'KeyK'];
-    this.laneLabels = ['D', 'F', 'J', 'K'];
-    this.laneColors = ['#22c55e', '#ef4444', '#eab308', '#3b82f6'];
-    this.keysHeld = [false, false, false, false];
+    // 5 CARRILES (A, S, D, F, G)
+    this.laneCount = 5;
+    this.laneKeys = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG'];
+    this.laneLabels = ['A', 'S', 'D', 'F', 'G'];
+    this.laneColors = ['#22c55e', '#ef4444', '#eab308', '#3b82f6', '#f97316'];
+    this.keysHeld = [false, false, false, false, false];
 
     // Geometría en perspectiva 3D del mesón de azulejos
     this.neckTopY = 92;
     this.neckBottomY = 335;
     this.hitLineZ = 0.86;
-    this.neckTopWidth = 130;
-    this.neckBottomWidth = 410;
-    this.noteApproachTime = 1.55;
+    this.neckTopWidth = 140;
+    this.neckBottomWidth = 430;
+    this.noteApproachTime = this.songConfig.approachTime;
 
     // Ventanas de precisión (segundos)
-    this.perfectWindow = 0.050; // ±50ms -> ¡BIEN!
-    this.goodWindow = 0.145;    // ±145ms -> RUSHING (temprano) / DRAGGING (tarde)
+    this.perfectWindow = 0.055; // ±55ms -> ¡BIEN!
+    this.goodWindow = 0.150;    // ±150ms -> RUSHING / DRAGGING
 
     // Estadísticas
     this.score = 0;
     this.combo = 0;
     this.maxCombo = 0;
-    this.health = 70;
+    this.health = 75;
     this.maxHealth = 100;
 
-    // Medidor de Supercarga (Papa que se va pelando: 0 a 100)
+    // Medidor de Supercarga (Papa pelándose)
     this.peelCharge = 0;
     this.isOverdrive = false;
 
     // Textos de feedback
     this.judgmentText = '¡PREPARA LA SARTÉN!';
-    this.judgmentSubText = 'Presiona D, F, J, K cuando las papas lleguen a los quemadores';
+    this.judgmentSubText = 'Presiona A, S, D, F, G cuando las papas lleguen a los quemadores';
     this.judgmentColor = '#facc15';
     this.judgmentTimer = 3.0;
 
     this.particles = [];
     this.peelFlakes = [];
-    this.activeHolds = [null, null, null, null];
+    this.activeHolds = [null, null, null, null, null];
 
-    // Reproductor de audio
-    this.audio = new Audio();
-    this.audio.preload = 'auto';
+    // Reproductor Multipista de Audio
+    this.audioTracks = [];
+    this.masterAudio = null;
     this.useFallbackClock = false;
     this.songStartTime = 0;
     this.currentSongTime = 0;
-    this.songDuration = 40;
-    this.chartEndTime = 40;
+    this.songDuration = 195;
+    this.chartEndTime = 195;
 
     this.rawChart = [];
     this.notes = [];
@@ -119,83 +104,132 @@ export class RhythmPotatoGame {
 
     // Estados de pantalla
     this.waitingForStart = true;
-    this.isLevelTransition = false;
     this.isGameOver = false;
     this.isVictory = false;
 
     this.animFrameId = null;
     this.lastFrameTime = performance.now();
 
-    this.setupAudioEvents();
     this.createTouchControls();
     this.bindEvents();
 
-    // Cargar el Nivel 1 (Mañana) al iniciar
-    this.loadLevel(0);
+    // Cargar notas de guitarra y todas las pistas .ogg simultáneamente
+    this.loadSongAndChart();
     this.loop(this.lastFrameTime);
   }
 
-  // =========================================================================
-  // CARGA DE CADA NIVEL (AUDIO .OGG + ARCHIVO .CHART DE MOONSCRAPER)
-  // =========================================================================
-  async loadLevel(levelIndex) {
-    this.currentLevelIndex = levelIndex;
-    const lvl = this.levels[levelIndex];
-
-    this.currentStageTime = lvl.timeOfDay;
-    this.noteApproachTime = lvl.approachTime;
+  async loadSongAndChart() {
     this.waitingForStart = true;
-    this.isLevelTransition = false;
     this.isGameOver = false;
+    this.isVictory = false;
     this.isLoadingChart = true;
 
+    this.score = 0;
     this.combo = 0;
     this.health = 75;
     this.peelCharge = 0;
     this.isOverdrive = false;
-    this.activeHolds = [null, null, null, null];
+    this.activeHolds = [null, null, null, null, null];
     this.currentSongTime = 0;
 
-    // Configurar audio del nivel
     this.useFallbackClock = false;
-    this.audio.pause();
-    this.audio.src = lvl.audioSrc;
-    this.audio.load();
+    this.stopAllAudioTracks();
 
-    // Intentar cargar el archivo .chart de Moonscraper correspondiente a este nivel
     try {
-      const response = await fetch(lvl.chartSrc);
-      if (!response.ok) throw new Error('No se encontró el archivo .chart');
+      const response = await fetch(this.songConfig.chartSrc);
+      if (!response.ok) throw new Error('No se encontró notes1.chart');
       const chartText = await response.text();
-      const parsedNotes = this.parseMoonscraperChart(chartText, lvl.difficulty);
+      const parsedNotes = this.parseMoonscraperChart(chartText, this.songConfig.difficulty);
 
       if (parsedNotes.length > 0) {
         this.rawChart = parsedNotes;
-        console.log(`[${lvl.name}] Chart cargado con éxito: ${parsedNotes.length} notas.`);
+        console.log(`[PAPAHERO] Chart de guitarra cargado: ${parsedNotes.length} notas.`);
       } else {
-        this.rawChart = this.getFallbackChart(levelIndex);
+        this.rawChart = this.getFallbackChart();
       }
     } catch (err) {
-      console.warn(`[${lvl.name}] Usando chart de respaldo (no se encontró ${lvl.chartSrc}).`);
-      this.rawChart = this.getFallbackChart(levelIndex);
+      console.warn('[PAPAHERO] Error al leer notes1.chart, usando respaldo:', err);
+      this.rawChart = this.getFallbackChart();
     }
 
     this.resetNotes();
+    await this.setupMultiTrackAudio(this.songConfig.audioSources);
     this.isLoadingChart = false;
   }
 
-  // =========================================================================
-  // PARSER COMPLETO DE ARCHIVOS .CHART (MOONSCRAPER / CLONE HERO)
-  // =========================================================================
+  // Carga paralela de todos los .ogg de la carpeta
+  async setupMultiTrackAudio(sources) {
+    this.audioTracks = [];
+    this.masterAudio = null;
+
+    const loadPromises = sources.map((url) => {
+      return new Promise((resolve) => {
+        const audio = new Audio();
+        audio.preload = 'auto';
+
+        const cleanup = () => {
+          audio.removeEventListener('canplaythrough', onReady);
+          audio.removeEventListener('loadedmetadata', onReady);
+          audio.removeEventListener('error', onError);
+        };
+
+        const onReady = () => {
+          cleanup();
+          resolve(audio);
+        };
+
+        const onError = () => {
+          cleanup();
+          resolve(null); // Si falta algún instrumento secundario, no bloquea el juego
+        };
+
+        audio.addEventListener('canplaythrough', onReady, { once: true });
+        audio.addEventListener('loadedmetadata', onReady, { once: true });
+        audio.addEventListener('error', onError, { once: true });
+
+        audio.src = url;
+        audio.load();
+      });
+    });
+
+    const loaded = await Promise.all(loadPromises);
+    this.audioTracks = loaded.filter(Boolean);
+
+    if (this.audioTracks.length > 0) {
+      this.masterAudio = this.audioTracks[0];
+      if (this.masterAudio.duration && isFinite(this.masterAudio.duration)) {
+        this.songDuration = this.masterAudio.duration;
+      }
+      this.masterAudio.addEventListener('loadedmetadata', () => {
+        if (this.masterAudio && isFinite(this.masterAudio.duration)) {
+          this.songDuration = this.masterAudio.duration;
+        }
+      });
+      console.log(`[PAPAHERO] Pistas de audio listas: ${this.audioTracks.length} instrumentos sonando juntos.`);
+    } else {
+      this.useFallbackClock = true;
+      this.songDuration = this.chartEndTime;
+    }
+  }
+
+  stopAllAudioTracks() {
+    if (!this.audioTracks) return;
+    for (const track of this.audioTracks) {
+      try {
+        track.pause();
+        track.currentTime = 0;
+      } catch (e) {}
+    }
+  }
+
+  // Parser enfocado exclusivamente en la pista de guitarra principal
   parseMoonscraperChart(chartText, preferredDiff = 'ExpertSingle') {
-    // 1. Leer Resolution y Offset en [Song]
     const resMatch = chartText.match(/Resolution\s*=\s*(\d+)/i);
     const resolution = resMatch ? parseInt(resMatch[1], 10) : 192;
 
     const offsetMatch = chartText.match(/Offset\s*=\s*([-\d.]+)/i);
     const offsetSec = offsetMatch ? parseFloat(offsetMatch[1]) : 0;
 
-    // 2. Leer cambios de BPM en [SyncTrack]
     const syncMatch = chartText.match(/\[SyncTrack\]\s*\{([\s\S]*?)\}/i);
     const bpmEvents = [];
     if (syncMatch) {
@@ -215,7 +249,6 @@ export class RhythmPotatoGame {
     }
     bpmEvents.sort((a, b) => a.tick - b.tick);
 
-    // Precalcular tiempos acumulados en cada cambio de BPM
     let accTime = 0;
     for (let i = 0; i < bpmEvents.length; i++) {
       if (i > 0) {
@@ -235,11 +268,10 @@ export class RhythmPotatoGame {
       return offsetSec + activeBpm.timeSec + (deltaTicks / resolution) * (60 / activeBpm.bpm);
     };
 
-    // 3. Buscar sección de notas (intenta la dificultad pedida o la que tenga el archivo)
     const diffOrder = [preferredDiff, 'ExpertSingle', 'HardSingle', 'MediumSingle', 'EasySingle'];
     let notesBlock = null;
     for (const diff of diffOrder) {
-      const regex = new RegExp(`\\[${diff}\\]\\s*\\{([\\s\S]*?)\\}`, 'i');
+      const regex = new RegExp(`\\[${diff}\\]\\s*\\{([\\s\\S]*?)\\}`, 'i');
       const match = chartText.match(regex);
       if (match && match[1].includes('= N')) {
         notesBlock = match[1];
@@ -248,7 +280,6 @@ export class RhythmPotatoGame {
     }
     if (!notesBlock) return [];
 
-    // 4. Extraer cada nota y adaptarla a los 4 carriles (D, F, J, K)
     const result = [];
     const seenAtTick = new Set();
     const lines = notesBlock.split('\n');
@@ -261,11 +292,10 @@ export class RhythmPotatoGame {
       const rawFret = parseInt(m[2], 10);
       const sustainTicks = parseInt(m[3], 10);
 
-      // Ignorar flags de Clone Hero (5 = Forced, 6 = Tap)
       if (rawFret === 5 || rawFret === 6 || rawFret > 7) continue;
 
-      // Mapear 5 carriles (0..4) o nota abierta (7) a nuestros 4 quemadores (0..3)
-      const lane = rawFret === 7 ? (tick % 4) : (rawFret >= 4 ? 3 : rawFret);
+      const lane = rawFret === 7 ? (tick % 5) : rawFret;
+      if (lane < 0 || lane > 4) continue;
 
       const key = `${tick}-${lane}`;
       if (seenAtTick.has(key)) continue;
@@ -287,38 +317,17 @@ export class RhythmPotatoGame {
     return result.sort((a, b) => a.time - b.time);
   }
 
-  // Chart de respaldo por si pruebas un nivel antes de colocar su archivo .chart
-  getFallbackChart(levelIdx) {
-    const speedFactor = levelIdx === 0 ? 1.0 : (levelIdx === 1 ? 0.85 : 0.72);
-    const base = [
+  getFallbackChart() {
+    return [
       { time: 1.5, lane: 0, duration: 0 },
       { time: 2.0, lane: 1, duration: 0 },
       { time: 2.5, lane: 2, duration: 0 },
-      { time: 3.0, lane: 3, duration: 0.8 },
-      { time: 4.2, lane: 0, duration: 0 },
-      { time: 4.5, lane: 1, duration: 0 },
-      { time: 4.8, lane: 2, duration: 0 },
-      { time: 5.1, lane: 1, duration: 0 },
-      { time: 5.5, lane: 0, duration: 1.0 },
-      { time: 5.5, lane: 2, duration: 1.0 },
-      { time: 7.0, lane: 3, duration: 0 },
-      { time: 7.3, lane: 2, duration: 0 },
-      { time: 7.6, lane: 1, duration: 0 },
-      { time: 7.9, lane: 0, duration: 0 },
-      { time: 8.3, lane: 1, duration: 0.9 },
-      { time: 8.3, lane: 3, duration: 0.9 },
-      { time: 9.8, lane: 0, duration: 0 },
-      { time: 10.1, lane: 2, duration: 0 },
-      { time: 10.4, lane: 1, duration: 0 },
-      { time: 10.7, lane: 3, duration: 0 },
-      { time: 11.1, lane: 0, duration: 1.2 },
-      { time: 11.1, lane: 3, duration: 1.2 }
+      { time: 3.0, lane: 3, duration: 0 },
+      { time: 3.5, lane: 4, duration: 0.8 },
+      { time: 4.5, lane: 0, duration: 0 },
+      { time: 5.0, lane: 2, duration: 0 },
+      { time: 5.5, lane: 4, duration: 1.2 }
     ];
-    return base.map(n => ({
-      time: Number((n.time * speedFactor).toFixed(3)),
-      lane: (n.lane + levelIdx) % 4,
-      duration: Number((n.duration * speedFactor).toFixed(3))
-    }));
   }
 
   resetNotes() {
@@ -335,27 +344,14 @@ export class RhythmPotatoGame {
     }));
 
     const lastNote = this.notes[this.notes.length - 1];
-    this.chartEndTime = lastNote ? lastNote.time + (lastNote.duration || 0) + 2.2 : 20;
-    this.songDuration = this.chartEndTime;
+    this.chartEndTime = lastNote ? lastNote.time + (lastNote.duration || 0) + 2.5 : 30;
+    if (!this.masterAudio || !isFinite(this.masterAudio.duration)) {
+      this.songDuration = this.chartEndTime;
+    }
   }
 
   setupAudioEvents() {
-    this.audio.addEventListener('loadedmetadata', () => {
-      if (this.audio.duration && isFinite(this.audio.duration)) {
-        this.songDuration = this.audio.duration;
-      }
-    });
-
-    this.audio.addEventListener('ended', () => {
-      if (!this.isGameOver && !this.isVictory && !this.isLevelTransition) {
-        this.completeCurrentLevel();
-      }
-    });
-
-    this.audio.addEventListener('error', () => {
-      this.useFallbackClock = true;
-      this.songDuration = this.chartEndTime;
-    });
+    // Manejado en setupMultiTrackAudio
   }
 
   startSong() {
@@ -369,40 +365,23 @@ export class RhythmPotatoGame {
       if (AudioContextClass) this.audioCtx = new AudioContextClass();
     }
 
-    this.audio.currentTime = 0;
-    this.audio.play().catch(() => {
-      this.useFallbackClock = true;
-      this.songDuration = this.chartEndTime;
-    });
-  }
-
-  // Avanza del Nivel 1 (Día) -> Nivel 2 (Golden Hour) -> Nivel 3 (Noche) -> Victoria Final
-  completeCurrentLevel() {
-    this.audio.pause();
-    this.activeHolds = [null, null, null, null];
-
-    if (this.currentLevelIndex < this.levels.length - 1) {
-      this.isLevelTransition = true;
-      this.judgmentText = `¡NIVEL ${this.currentLevelIndex + 1} SUPERADO!`;
-      this.judgmentSubText = 'PREPARANDO EL SIGUIENTE TURNO EN LA COCINA...';
-      this.judgmentColor = '#4ade80';
-      this.judgmentTimer = 3.0;
+    if (this.audioTracks.length > 0) {
+      for (const track of this.audioTracks) {
+        track.currentTime = 0;
+        track.play().catch(() => {
+          this.useFallbackClock = true;
+        });
+      }
     } else {
-      this.triggerFinalVictory();
-    }
-  }
-
-  advanceToNextLevel() {
-    if (this.currentLevelIndex < this.levels.length - 1) {
-      this.loadLevel(this.currentLevelIndex + 1);
+      this.useFallbackClock = true;
     }
   }
 
   triggerFinalVictory() {
     this.isVictory = true;
-    this.audio.pause();
-    this.judgmentText = '¡3 TURNOS COMPLETADOS!';
-    this.judgmentSubText = 'DESBLOQUEANDO HASHBROWNS DORADOS...';
+    this.stopAllAudioTracks();
+    this.judgmentText = '¡HASHBROWNS DORADOS LISTOS!';
+    this.judgmentSubText = 'DESBLOQUEANDO RECETA EN EL ANILLO...';
     this.judgmentColor = '#4ade80';
     this.judgmentTimer = 4.0;
 
@@ -421,7 +400,7 @@ export class RhythmPotatoGame {
       gain.connect(this.audioCtx.destination);
 
       if (type === 'hit') {
-        const freqs = [261.6, 329.6, 392.0, 523.2];
+        const freqs = [220.0, 261.6, 329.6, 392.0, 523.2];
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freqs[lane] || 330, now);
         gain.gain.setValueAtTime(this.useFallbackClock ? 0.12 : 0.03, now);
@@ -454,16 +433,17 @@ export class RhythmPotatoGame {
     this.touchOverlay.className = `${isTouch ? 'flex' : 'hidden'} absolute inset-x-0 bottom-1 pointer-events-none justify-between px-3 z-20 select-none`;
 
     this.touchOverlay.innerHTML = `
-      <div class="flex gap-2 pointer-events-auto">
-        <button data-lane="0" class="rhythm-btn w-12 h-12 bg-green-700/80 border-2 border-white text-white font-bold text-lg rounded active:scale-95">D</button>
-        <button data-lane="1" class="rhythm-btn w-12 h-12 bg-red-700/80 border-2 border-white text-white font-bold text-lg rounded active:scale-95">F</button>
+      <div class="flex gap-1.5 pointer-events-auto">
+        <button data-lane="0" class="rhythm-btn w-11 h-12 bg-green-700/80 border-2 border-white text-white font-bold text-lg rounded active:scale-95">A</button>
+        <button data-lane="1" class="rhythm-btn w-11 h-12 bg-red-700/80 border-2 border-white text-white font-bold text-lg rounded active:scale-95">S</button>
+        <button data-lane="2" class="rhythm-btn w-11 h-12 bg-yellow-500/80 border-2 border-white text-black font-bold text-lg rounded active:scale-95">D</button>
       </div>
-      <button data-action="overdrive" class="pointer-events-auto px-3 h-12 bg-yellow-600/85 border-2 border-white text-black font-bold text-xs rounded active:scale-95">
-        🥔 SUPERCARGA
+      <button data-action="overdrive" class="pointer-events-auto px-2.5 h-12 bg-yellow-600/85 border-2 border-white text-black font-bold text-xs rounded active:scale-95">
+        🥔 SUPER
       </button>
-      <div class="flex gap-2 pointer-events-auto">
-        <button data-lane="2" class="rhythm-btn w-12 h-12 bg-yellow-500/80 border-2 border-white text-black font-bold text-lg rounded active:scale-95">J</button>
-        <button data-lane="3" class="rhythm-btn w-12 h-12 bg-blue-700/80 border-2 border-white text-white font-bold text-lg rounded active:scale-95">K</button>
+      <div class="flex gap-1.5 pointer-events-auto">
+        <button data-lane="3" class="rhythm-btn w-11 h-12 bg-blue-700/80 border-2 border-white text-white font-bold text-lg rounded active:scale-95">F</button>
+        <button data-lane="4" class="rhythm-btn w-11 h-12 bg-orange-600/80 border-2 border-white text-white font-bold text-lg rounded active:scale-95">G</button>
       </div>
     `;
     this.container.appendChild(this.touchOverlay);
@@ -473,8 +453,7 @@ export class RhythmPotatoGame {
       btn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         if (this.waitingForStart) { this.startSong(); return; }
-        if (this.isLevelTransition) { this.advanceToNextLevel(); return; }
-        if (this.isGameOver) { this.restartCurrentLevel(); return; }
+        if (this.isGameOver) { this.restartSong(); return; }
         this.handleLanePress(lane);
       }, { passive: false });
 
@@ -503,15 +482,14 @@ export class RhythmPotatoGame {
         return;
       }
 
-      if (this.isLevelTransition && (code === 'Space' || code === 'Enter')) {
+      if (this.isGameOver && (code === 'KeyR' || code === 'Space')) {
         e.preventDefault();
-        this.advanceToNextLevel();
+        this.restartSong();
         return;
       }
 
-      if (this.isGameOver && (code === 'KeyR' || code === 'Space')) {
-        e.preventDefault();
-        this.restartCurrentLevel();
+      if (code === 'KeyC' && !e.repeat) {
+        this.cycleTimeOfDayMode();
         return;
       }
 
@@ -545,12 +523,13 @@ export class RhythmPotatoGame {
         this.startSong();
         return;
       }
-      if (this.isLevelTransition) {
-        this.advanceToNextLevel();
+      if (this.isGameOver) {
+        this.restartSong();
         return;
       }
-      if (this.isGameOver) {
-        this.restartCurrentLevel();
+
+      if (x >= 220 && x <= 420 && y >= 6 && y <= 34) {
+        this.cycleTimeOfDayMode();
         return;
       }
 
@@ -562,6 +541,12 @@ export class RhythmPotatoGame {
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     this.canvas.addEventListener('mousedown', this.onCanvasClick);
+  }
+
+  cycleTimeOfDayMode() {
+    const modes = ['auto', 'morning', 'afternoon', 'night'];
+    const nextIdx = (modes.indexOf(this.timeOfDayMode) + 1) % modes.length;
+    this.timeOfDayMode = modes[nextIdx];
   }
 
   handleLanePress(lane) {
@@ -663,7 +648,7 @@ export class RhythmPotatoGame {
 
   registerMiss(title, subtitle, lane = -1) {
     this.combo = 0;
-    this.health = Math.max(0, this.health - 11);
+    this.health = Math.max(0, this.health - 9);
 
     this.judgmentText = title;
     this.judgmentSubText = subtitle;
@@ -674,7 +659,7 @@ export class RhythmPotatoGame {
 
     if (this.health <= 0) {
       this.isGameOver = true;
-      this.audio.pause();
+      this.stopAllAudioTracks();
     }
   }
 
@@ -691,8 +676,18 @@ export class RhythmPotatoGame {
     }
   }
 
-  restartCurrentLevel() {
-    this.loadLevel(this.currentLevelIndex);
+  restartSong() {
+    this.stopAllAudioTracks();
+    this.isGameOver = false;
+    this.isVictory = false;
+    this.score = 0;
+    this.combo = 0;
+    this.health = 75;
+    this.peelCharge = 0;
+    this.isOverdrive = false;
+    this.activeHolds = [null, null, null, null, null];
+    this.resetNotes();
+    this.startSong();
   }
 
   loop(timestamp) {
@@ -709,13 +704,23 @@ export class RhythmPotatoGame {
     if (this.judgmentTimer > 0) this.judgmentTimer -= dt;
     this.updateParticles(dt);
 
-    if (this.waitingForStart || this.isLevelTransition || this.isGameOver || this.isVictory) return;
+    if (this.waitingForStart || this.isGameOver || this.isVictory) return;
 
-    if (!this.useFallbackClock && !this.audio.paused) {
-      this.currentSongTime = this.audio.currentTime;
+    if (!this.useFallbackClock && this.masterAudio && !this.masterAudio.paused) {
+      this.currentSongTime = this.masterAudio.currentTime;
+
+      // Mantener sincronizadas todas las pistas de audio (guitar, bass, drums, etc.)
+      for (let i = 1; i < this.audioTracks.length; i++) {
+        const track = this.audioTracks[i];
+        if (Math.abs(track.currentTime - this.currentSongTime) > 0.08) {
+          track.currentTime = this.currentSongTime;
+        }
+      }
     } else {
       this.currentSongTime = (performance.now() - this.songStartTime) / 1000;
     }
+
+    this.updateKitchenTimeOfDay();
 
     if (this.isOverdrive) {
       this.peelCharge -= 12.5 * dt;
@@ -753,7 +758,23 @@ export class RhythmPotatoGame {
 
     const levelEndTarget = Math.min(this.songDuration, this.chartEndTime);
     if (this.currentSongTime >= levelEndTarget && !this.isGameOver) {
-      this.completeCurrentLevel();
+      this.triggerFinalVictory();
+    }
+  }
+
+  updateKitchenTimeOfDay() {
+    if (this.timeOfDayMode !== 'auto') {
+      this.currentStageTime = this.timeOfDayMode;
+      return;
+    }
+    const total = Math.min(this.songDuration, this.chartEndTime) || 60;
+    const progress = this.currentSongTime / total;
+    if (progress < 0.34) {
+      this.currentStageTime = 'morning';
+    } else if (progress < 0.68) {
+      this.currentStageTime = 'afternoon';
+    } else {
+      this.currentStageTime = 'night';
     }
   }
 
@@ -762,7 +783,7 @@ export class RhythmPotatoGame {
     const y = this.neckTopY + (this.neckBottomY - this.neckTopY) * pZ;
     const widthAtZ = this.neckTopWidth + (this.neckBottomWidth - this.neckTopWidth) * pZ;
     const leftX = (this.width - widthAtZ) / 2;
-    const x = leftX + (lanePos / 4) * widthAtZ;
+    const x = leftX + (lanePos / this.laneCount) * widthAtZ;
     const scale = 0.35 + 0.65 * pZ;
     return { x, y, scale, widthAtZ, leftX };
   }
@@ -835,8 +856,6 @@ export class RhythmPotatoGame {
 
     if (this.waitingForStart) {
       this.drawStartOverlay(ctx);
-    } else if (this.isLevelTransition) {
-      this.drawLevelTransitionOverlay(ctx);
     } else if (this.isGameOver) {
       this.drawGameOverOverlay(ctx);
     }
@@ -852,7 +871,6 @@ export class RhythmPotatoGame {
     let ambientOverlay = 'rgba(255, 255, 220, 0.04)';
 
     if (stage === 'afternoon') {
-      // Golden Hour cálido
       wallColor = '#fed7aa';
       cabinetColor = '#5c2d0c';
       skyTop = '#ea580c';
@@ -899,7 +917,6 @@ export class RhythmPotatoGame {
       ctx.lineTo(winX + winW, winY + winH);
       ctx.fill();
     } else if (stage === 'afternoon') {
-      // Sol de Golden Hour poniéndose en el horizonte
       ctx.fillStyle = '#fde047';
       ctx.beginPath();
       ctx.arc(winX + 88, winY + 46, 20, 0, Math.PI * 2);
@@ -970,9 +987,9 @@ export class RhythmPotatoGame {
 
   drawTiledCounterFretboard(ctx) {
     const topL = this.getTrackPoint(0, 0);
-    const topR = this.getTrackPoint(4, 0);
+    const topR = this.getTrackPoint(this.laneCount, 0);
     const botL = this.getTrackPoint(0, 1);
-    const botR = this.getTrackPoint(4, 1);
+    const botR = this.getTrackPoint(this.laneCount, 1);
 
     ctx.fillStyle = this.isOverdrive ? '#ca8a04' : '#78350f';
     ctx.beginPath();
@@ -999,7 +1016,7 @@ export class RhythmPotatoGame {
       const z1 = (r + scrollOffset) / numRows;
       const z2 = Math.min(1, (r + 1 + scrollOffset) / numRows);
 
-      for (let c = 0; c < 4; c++) {
+      for (let c = 0; c < this.laneCount; c++) {
         const isAltTile = (Math.floor(r + this.currentSongTime * (numRows / this.noteApproachTime)) + c) % 2 === 0;
         const p1 = this.getTrackPoint(c, z1);
         const p2 = this.getTrackPoint(c + 1, z1);
@@ -1024,11 +1041,11 @@ export class RhythmPotatoGame {
       }
     }
 
-    for (let lane = 0; lane <= 4; lane++) {
+    for (let lane = 0; lane <= this.laneCount; lane++) {
       const pTop = this.getTrackPoint(lane, 0);
       const pBot = this.getTrackPoint(lane, 1);
-      ctx.strokeStyle = lane === 0 || lane === 4 ? '#334155' : '#64748b';
-      ctx.lineWidth = lane === 0 || lane === 4 ? 3 : 2;
+      ctx.strokeStyle = lane === 0 || lane === this.laneCount ? '#334155' : '#64748b';
+      ctx.lineWidth = lane === 0 || lane === this.laneCount ? 3 : 2;
       ctx.beginPath();
       ctx.moveTo(pTop.x, pTop.y);
       ctx.lineTo(pBot.x, pBot.y);
@@ -1037,11 +1054,11 @@ export class RhythmPotatoGame {
   }
 
   drawStoveBurners(ctx) {
-    for (let lane = 0; lane < 4; lane++) {
+    for (let lane = 0; lane < this.laneCount; lane++) {
       const center = this.getTrackPoint(lane + 0.5, this.hitLineZ);
       const isPressed = this.keysHeld[lane];
-      const rx = 31 * center.scale;
-      const ry = 15 * center.scale;
+      const rx = 24 * center.scale;
+      const ry = 13 * center.scale;
 
       ctx.save();
       ctx.fillStyle = '#18181b';
@@ -1052,7 +1069,7 @@ export class RhythmPotatoGame {
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      const flameCount = 10;
+      const flameCount = 8;
       for (let i = 0; i < flameCount; i++) {
         const ang = (i / flameCount) * Math.PI * 2 + performance.now() * 0.008;
         const fx = center.x + Math.cos(ang) * (rx * 0.72);
@@ -1061,21 +1078,21 @@ export class RhythmPotatoGame {
         if (isPressed) {
           ctx.fillStyle = this.isOverdrive ? '#fde047' : '#38bdf8';
           ctx.beginPath();
-          ctx.arc(fx, fy - 4, 5.5, 0, Math.PI * 2);
+          ctx.arc(fx, fy - 3, 4.5, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.fillStyle = this.laneColors[lane];
           ctx.beginPath();
-          ctx.arc(fx, fy - 8, 3.5, 0, Math.PI * 2);
+          ctx.arc(fx, fy - 6, 2.8, 0, Math.PI * 2);
           ctx.fill();
         } else {
           ctx.fillStyle = '#0284c7';
-          ctx.fillRect(fx - 1.5, fy - 1.5, 3, 3);
+          ctx.fillRect(fx - 1, fy - 1, 2, 2);
         }
       }
 
       ctx.strokeStyle = isPressed ? '#e4e4e7' : '#3f3f46';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(center.x - rx * 0.85, center.y);
       ctx.lineTo(center.x + rx * 0.85, center.y);
@@ -1089,7 +1106,7 @@ export class RhythmPotatoGame {
       ctx.fill();
 
       ctx.fillStyle = isPressed ? '#000000' : '#ffffff';
-      ctx.font = 'bold 16px VT323, monospace';
+      ctx.font = 'bold 15px VT323, monospace';
       ctx.textAlign = 'center';
       ctx.fillText(this.laneLabels[lane], center.x, center.y + 5);
       ctx.textAlign = 'left';
@@ -1119,8 +1136,8 @@ export class RhythmPotatoGame {
         if (clampedHeadZ > clampedTailZ) {
           const pHead = this.getTrackPoint(note.lane + 0.5, clampedHeadZ);
           const pTail = this.getTrackPoint(note.lane + 0.5, clampedTailZ);
-          const headW = 18 * pHead.scale;
-          const tailW = 18 * pTail.scale;
+          const headW = 14 * pHead.scale;
+          const tailW = 14 * pTail.scale;
 
           ctx.fillStyle = note.holding ? '#facc15' : '#d97706';
           ctx.beginPath();
@@ -1148,15 +1165,15 @@ export class RhythmPotatoGame {
   }
 
   drawRawPotatoSprite(ctx, x, y, scale, lane, seed, isCooking = false) {
-    const rx = 25 * scale;
-    const ry = 15 * scale;
+    const rx = 20 * scale;
+    const ry = 12 * scale;
 
     ctx.save();
     ctx.translate(x, y);
 
     ctx.fillStyle = this.laneColors[lane];
     ctx.beginPath();
-    ctx.ellipse(0, 3 * scale, rx * 1.12, ry * 1.12, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 2 * scale, rx * 1.12, ry * 1.12, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = isCooking ? '#eab308' : '#b48343';
@@ -1174,7 +1191,7 @@ export class RhythmPotatoGame {
     ctx.fill();
 
     ctx.strokeStyle = '#451a03';
-    ctx.lineWidth = Math.max(1.5, 2.5 * scale);
+    ctx.lineWidth = Math.max(1.5, 2 * scale);
     ctx.stroke();
 
     ctx.fillStyle = isCooking ? '#fef08a' : '#d6a364';
@@ -1182,9 +1199,6 @@ export class RhythmPotatoGame {
     ctx.ellipse(-rx * 0.25, -ry * 0.25, rx * 0.4, ry * 0.28, -0.2, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#5c3a18';
-    ctx.fillRect(-rx * 0.35, ry * 0.1, Math.max(2, 3 * scale), Math.max(2, 2 * scale));
-    ctx.fillRect(rx * 0.2, -ry * 0.15, Math.max(2, 3 * scale), Math.max(2, 2 * scale));
     ctx.restore();
   }
 
@@ -1340,18 +1354,17 @@ export class RhythmPotatoGame {
     ctx.font = '18px VT323, monospace';
     ctx.fillText(`RACHA: ${this.combo} (MÁX: ${this.maxCombo})`, 24, 54);
 
-    // Indicador central del Nivel Actual (1/3 Mañana, 2/3 Golden Hour, 3/3 Noche)
     const stageLabels = {
-      morning: 'NIVEL 1/3: MAÑANA ☀',
-      afternoon: 'NIVEL 2/3: GOLDEN HOUR 🌇',
-      night: 'NIVEL 3/3: NOCHE 🌙'
+      morning: '[C] COCINA: MAÑANA ☀',
+      afternoon: '[C] COCINA: GOLDEN HOUR 🌇',
+      night: '[C] COCINA: NOCHE 🌙'
     };
     ctx.fillStyle = 'rgba(0, 0, 60, 0.9)';
-    ctx.fillRect(220, 8, 200, 26);
+    ctx.fillRect(215, 8, 210, 26);
     ctx.strokeStyle = '#facc15';
-    ctx.strokeRect(220, 8, 200, 26);
+    ctx.strokeRect(215, 8, 210, 26);
     ctx.fillStyle = '#fef08a';
-    ctx.font = '16px VT323, monospace';
+    ctx.font = '15px VT323, monospace';
     ctx.textAlign = 'center';
     ctx.fillText(stageLabels[this.currentStageTime], 320, 26);
 
@@ -1387,8 +1400,6 @@ export class RhythmPotatoGame {
   }
 
   drawStartOverlay(ctx) {
-    const lvl = this.levels[this.currentLevelIndex];
-
     ctx.fillStyle = 'rgba(0, 0, 20, 0.85)';
     ctx.fillRect(75, 90, 490, 185);
     ctx.strokeStyle = '#facc15';
@@ -1398,45 +1409,21 @@ export class RhythmPotatoGame {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fde047';
     ctx.font = '30px VT323, monospace';
-    ctx.fillText(`🎸 ${lvl.name} 🥔`, this.width / 2, 128);
+    ctx.fillText(`🎸 ${this.songConfig.name} 🥔`, this.width / 2, 128);
 
     ctx.fillStyle = '#e2e8f0';
     ctx.font = '18px VT323, monospace';
-    ctx.fillText('Teclas [ D ] [ F ] [ J ] [ K ] sobre los 4 quemadores de cocina', this.width / 2, 162);
+    ctx.fillText('Teclas [ A ] [ S ] [ D ] [ F ] [ G ] en los 5 quemadores', this.width / 2, 162);
     ctx.fillText('Pela la papa (50%+) y presiona [ ESPACIO ] para SUPERCARGA', this.width / 2, 186);
-    ctx.fillText(`Notas cargadas en este turno: ${this.notes.length} papas`, this.width / 2, 212);
+    ctx.fillText(`Notas de guitarra cargadas: ${this.notes.length} papas`, this.width / 2, 212);
 
     ctx.fillStyle = '#4ade80';
     ctx.font = '24px VT323, monospace';
     ctx.fillText(
-      this.isLoadingChart ? 'CARGANDO CHART...' : '▶ PRESIONA ESPACIO O CLIC PARA EMPEZAR ◀',
+      this.isLoadingChart ? 'CARGANDO CHART Y MULTIPISTA...' : '▶ PRESIONA ESPACIO O CLIC PARA EMPEZAR ◀',
       this.width / 2,
       252
     );
-    ctx.textAlign = 'left';
-  }
-
-  drawLevelTransitionOverlay(ctx) {
-    const nextLvl = this.levels[this.currentLevelIndex + 1];
-
-    ctx.fillStyle = 'rgba(0, 15, 35, 0.88)';
-    ctx.fillRect(85, 100, 470, 165);
-    ctx.strokeStyle = '#4ade80';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(85, 100, 470, 165);
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#4ade80';
-    ctx.font = '32px VT323, monospace';
-    ctx.fillText(`¡TURNO ${this.currentLevelIndex + 1} COMPLETADO!`, this.width / 2, 138);
-
-    ctx.fillStyle = '#fde047';
-    ctx.font = '22px VT323, monospace';
-    ctx.fillText(`Siguiente: ${nextLvl ? nextLvl.name : ''}`, this.width / 2, 175);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '24px VT323, monospace';
-    ctx.fillText('▶ PRESIONA [ ESPACIO ] O CLIC PARA CONTINUAR ◀', this.width / 2, 232);
     ctx.textAlign = 'left';
   }
 
@@ -1451,11 +1438,11 @@ export class RhythmPotatoGame {
 
     ctx.fillStyle = '#fde047';
     ctx.font = '22px VT323, monospace';
-    ctx.fillText(`Nivel ${this.currentLevelIndex + 1}/3 | Puntaje: ${this.score} | Racha Máx: ${this.maxCombo}`, this.width / 2, 190);
+    ctx.fillText(`Puntaje: ${this.score} | Racha Máxima: ${this.maxCombo}`, this.width / 2, 190);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '24px VT323, monospace';
-    ctx.fillText('Presiona [ R ] o [ ESPACIO ] para reintentar este nivel', this.width / 2, 232);
+    ctx.fillText('Presiona [ R ] o [ ESPACIO ] para reintentar', this.width / 2, 232);
     ctx.textAlign = 'left';
   }
 
@@ -1463,9 +1450,11 @@ export class RhythmPotatoGame {
     if (this.animFrameId) {
       cancelAnimationFrame(this.animFrameId);
     }
-    if (this.audio) {
-      this.audio.pause();
-      this.audio.src = '';
+    this.stopAllAudioTracks();
+    if (this.audioTracks) {
+      for (const t of this.audioTracks) {
+        t.src = '';
+      }
     }
     if (this.audioCtx && this.audioCtx.state !== 'closed') {
       this.audioCtx.close().catch(() => {});
