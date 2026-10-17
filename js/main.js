@@ -1,8 +1,7 @@
-import { ThreeHub } from './three-hub.js';
-import { AudioManager } from './audio-manager.js';
-import { BlasphemousPotatoGame } from './minijuegos/BLASFEPAPA/game-blasfepapa.js';
-import { FF7Minigame } from './minigames/ff7/game-ff7.js';
-import { BlasphemousPotatoGame } from './minijuegos/BLASFEPAPA/game-blasfepapa.js';
+import { ThreeHub } from './three-hub.js?v=9';
+import { AudioManager } from './audio-manager.js?v=9';
+import { FF7Minigame } from './minigames/ff7/game-ff7.js?v=9';
+import { BlasphemousPotatoGame } from './minijuegos/BLASFEPAPA/game-blasfepapa.js?v=9';
 
 // 1. LISTA DE CANCIONES (Guarda tus archivos .mp3 en ./assets/audio/)
 const dnbPlaylist = [
@@ -69,17 +68,17 @@ function handleNodeSelection(recipe, index) {
 
   if (recipe.unlocked) {
     titleEl.textContent = `★ ${recipe.unlockedName}`;
-    titleEl.className = 'text-lg md:text-2xl text-green-400 leading-none';
+    titleEl.className = 'text-sm sm:text-lg md:text-2xl text-green-400 leading-tight truncate';
     descEl.textContent = recipe.unlockedDesc;
     btnAction.textContent = '✔ JUGAR DE NUEVO';
-    btnAction.className = 'w-full bg-blue-700 hover:bg-blue-600 border border-white py-1.5 px-3 text-sm md:text-lg text-white active:scale-95 transition mt-1';
+    btnAction.className = 'shrink-0 w-full sm:w-auto bg-blue-700 hover:bg-blue-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition';
     btnAction.classList.remove('hidden');
   } else {
     titleEl.textContent = recipe.lockedName;
-    titleEl.className = 'text-lg md:text-2xl text-red-400 leading-none';
+    titleEl.className = 'text-sm sm:text-lg md:text-2xl text-red-400 leading-tight truncate';
     descEl.textContent = recipe.lockedDesc;
     btnAction.textContent = `▶ DESBLOQUEAR JUEGO`;
-    btnAction.className = 'ps1-blink w-full bg-red-700 hover:bg-red-600 border border-white py-1.5 px-3 text-sm md:text-lg text-white active:scale-95 transition mt-1';
+    btnAction.className = 'ps1-blink shrink-0 w-full sm:w-auto bg-red-700 hover:bg-red-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition';
     btnAction.classList.remove('hidden');
   }
 }
@@ -115,6 +114,7 @@ function closeMinigameModal() {
   currentGameInstance = null;
   minigameStage.innerHTML = '';
   modal.classList.add('hidden');
+  bgm.resume(); // retoma la música del hub (solo si el usuario la tenía activada)
 }
 
 // =========================================================================
@@ -125,9 +125,6 @@ function closeMinigameModal() {
 function playFF7BattleTransition(onComplete) {
   if (isTransitioning) return;
   isTransitioning = true;
-
-  // Pausar la música DnB del Hub si estaba sonando
-  if (bgm.isPlaying) bgm.togglePlay(updateBgmUI);
 
   // SFX de encuentro aleatorio al iniciar el remolino
   const enterSfx = new Audio('./assets/audio/ff7/sfx/batttle-enter.mp3');
@@ -277,6 +274,9 @@ btnExitGame.addEventListener('click', () => {
   btnAction.blur(); // Quita el foco para que Enter no lo reactive durante la pelea
   if (!activeRecipe || isTransitioning || !modal.classList.contains('hidden')) return;
 
+  // Silencia (y cancela cualquier carga pendiente de) la música del hub, aunque aún no haya empezado a sonar
+  bgm.suspend();
+
   if (activeRecipe.id === 'ff7') {
     playFF7BattleTransition(launchMinigame);
   } else {
@@ -291,14 +291,38 @@ btnExitGame.addEventListener('click', () => {
 
 // Controles de la Radio Atmospheric DnB
 // =========================================================================
-// CONTROLES DE LA RADIO ATMOSPHERIC DNB (Con Auto-Play al primer gesto)
+// RADIO ATMOSPHERIC DNB + PANTALLA DE ENTRADA
+// La música se inicia dentro del clic de "TOCA PARA ENTRAR" (gesto garantizado en todos los navegadores)
 // =========================================================================
 const updateBgmUI = (track, isPlaying) => {
   btnBgmToggle.textContent = isPlaying ? `[ ♫ ${track.title} ]` : '[ ▶ BGM: OFF ]';
 };
+bgm.onTrackChange = updateBgmUI;
 
-window.addEventListener('DOMContentLoaded', () => {
-  bgm.togglePlay(updateBgmUI);
+const bootScreen = document.getElementById('boot-screen');
+const bootBar = document.getElementById('boot-bar');
+const bootStatus = document.getElementById('boot-status');
+const btnEnter = document.getElementById('btn-enter');
+let hasEntered = false;
+let bootAudioState = 'loading';
+
+btnEnter.disabled = true;
+
+bgm.preload({
+  timeout: 10000, // si la conexión es lenta no dejamos al usuario atrapado: la música seguirá cargando
+  onProgress: (pct) => { bootBar.style.width = `${pct}%`; }
+}).then((state) => {
+  bootAudioState = state;
+  const messages = {
+    ready: 'MÚSICA LISTA',
+    slow: 'CONEXIÓN LENTA: LA MÚSICA CARGARÁ EN SEGUNDO PLANO',
+    error: 'NO SE PUDO CARGAR LA MÚSICA'
+  };
+  bootStatus.textContent = messages[state];
+  if (state === 'ready') bootBar.style.width = '100%';
+  btnEnter.disabled = false;
+  btnEnter.textContent = '▶ TOCA PARA ENTRAR';
+  btnEnter.focus();
 });
 
 // 2. Desbloqueo automático al primer clic, toque o scroll
@@ -314,10 +338,16 @@ const unlockAudioOnFirstInteraction = () => {
   }
 };
 
-window.addEventListener('pointerdown', unlockAudioOnFirstInteraction, { once: true });
-window.addEventListener('wheel', unlockAudioOnFirstInteraction, { once: true });
-window.addEventListener('touchstart', unlockAudioOnFirstInteraction, { once: true });
-window.addEventListener('keydown', unlockAudioOnFirstInteraction, { once: true });
+btnEnter.addEventListener('click', () => {
+  if (hasEntered) return;
+  hasEntered = true;
+
+  // Debe ejecutarse DENTRO del gesto del usuario para que Firefox/Safari/Chrome permitan el audio
+  if (bootAudioState !== 'error') bgm.play(updateBgmUI);
+
+  bootScreen.classList.add('opacity-0', 'pointer-events-none');
+  setTimeout(() => bootScreen.remove(), 600);
+});
 
 btnBgmToggle.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -338,7 +368,7 @@ btnBgmNext.addEventListener('click', (e) => {
 // =========================================================================
 let lastScrollTime = 0;
 window.addEventListener('wheel', (e) => {
-  if (!minigameModal.classList.contains('hidden')) return;
+  if (!hasEntered || !minigameModal.classList.contains('hidden')) return;
   if (!modal.classList.contains('hidden') || isTransitioning) return;
   const now = Date.now();
   if (now - lastScrollTime < 350) return;
@@ -348,13 +378,13 @@ window.addEventListener('wheel', (e) => {
 
 let touchStartX = 0;
 window.addEventListener('touchstart', (e) => {
-  if (!minigameModal.classList.contains('hidden')) return;
+  if (!hasEntered || !minigameModal.classList.contains('hidden')) return;
   if (!modal.classList.contains('hidden')) return;
   touchStartX = e.touches[0].clientX;
 }, { passive: true });
 
 window.addEventListener('touchend', (e) => {
-  if (!modal.classList.contains('hidden') || isTransitioning) return;
+  if (!hasEntered || !modal.classList.contains('hidden') || isTransitioning) return;
   const deltaX = touchStartX - e.changedTouches[0].clientX;
   if (Math.abs(deltaX) > 45) {
     hub.rotateRing(deltaX);

@@ -70,3 +70,85 @@ body {
 #webgl-canvas {
   image-rendering: pixelated;
 }
+/* =========================================================================
+   ADAPTACIÓN MÓVIL (Especialmente modo Horizontal / Landscape como la foto)
+   ========================================================================= */
+#ui-layer, #minigame-modal {
+  height: 100dvh !important; /* Respeta la barra de direcciones de Chrome móvil */
+}
+
+/* Cuando el celular está en horizontal (poca altura), compactamos las cajas */
+@media (max-height: 520px) {
+  #ui-layer {
+    padding: 0.35rem !important;
+  }
+  #ui-layer header .ps1-box {
+    padding: 0.2rem 0.5rem !important;
+  }
+  #ui-layer header h1 {
+    font-size: 1rem !important;
+  }
+  #ui-layer header p {
+    display: none !important; /* Oculta subtítulo de instrucciones para ganar espacio */
+  }
+  /* Compactar la tarjeta inferior para que el botón de JUGAR SIEMPRE entre en pantalla */
+  #ui-layer > div:last-child,
+  #ui-layer footer,
+  #ui-layer .ps1-box:has(#selected-title) {
+    padding: 0.35rem 0.65rem !important;
+  }
+  #selected-title {
+    font-size: 1.05rem !important;
+    margin-bottom: 0.1rem !important;
+  }
+  #selected-desc {
+    font-size: 0.78rem !important;
+    line-height: 1.1 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 1; /* Máximo 1 línea de descripción en pantallas bajitas */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  #btn-action {
+    margin-top: 0.25rem !important;
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+.ps1-touch-pad {
+  display: none;
+}
+
+/* Se activa automáticamente en pantallas táctiles (celulares y tablets) */
+@media (pointer: coarse), (max-width: 920px) {
+  .ps1-touch-pad {
+    display: flex;
+  }
+}
+
+.ps1-dpad-btn {
+  background: rgba(30, 30, 40, 0.78);
+  border: 2px solid #9ca3af;
+  box-shadow: inset 1px 1px 0px #fff, 0 2px 4px rgba(0,0,0,0.8);
+  color: #e5e7eb;
+  user-select: none;
+  touch-action: manipulation;
+}
+.ps1-dpad-btn:active {
+  background: rgba(80, 80, 110, 0.95);
+  transform: scale(0.92);
+}
+
+.ps1-action-btn {
+  background: rgba(24, 24, 32, 0.82);
+  border: 2px solid #9ca3af;
+  border-radius: 9999px;
+  box-shadow: inset 1px 1px 0px rgba(255,255,255,0.5), 0 3px 6px rgba(0,0,0,0.85);
+  user-select: none;
+  touch-action: manipulation;
+}
+.ps1-action-btn:active {
+  transform: scale(0.9);
+  background: rgba(60, 60, 80, 0.95);
+}

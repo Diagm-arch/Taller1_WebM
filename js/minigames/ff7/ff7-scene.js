@@ -769,6 +769,34 @@ export class FF7BattleScene {
       onComplete: callbacks.onComplete
     };
   }
+  playItemAnimation(heroIndex, targetUnit = null, callbacks = {}) {
+    const hero = this.heroes[heroIndex];
+    if (!hero) {
+      if (callbacks.onComplete) callbacks.onComplete();
+      return;
+    }
+
+    hero.isAttacking = true;
+    hero.body.position.set(0, 0, 0);
+    hero.body.rotation.set(0, 0, 0);
+    hero.body.scale.set(1, 1, 1);
+
+    this.activeChoreography = {
+      role: 'cast_sequence',
+      castType: 'item',
+      hero,
+      targetUnit: targetUnit || hero,
+      startPos: hero.homePos.clone(),
+      stepPos: hero.homePos.clone().add(new THREE.Vector3(-0.75, 0, 0)),
+      startTime: performance.now(),
+      castDuration: 0.45, // Más corto que un hechizo porque no requiere conjuro
+      lastWaveTime: Infinity, // Infinity evita que salgan anillos del suelo al usar ítems
+      castSoundPlayed: true,
+      effectTriggered: false,
+      onSpellEffect: callbacks.onItemEffect,
+      onComplete: callbacks.onComplete
+    };
+  }
 
   // Crea el Kanji "凶" (kyō) dividido en las 3 partes de los cortes de Cloud
   createKyoKanjiGroup(position) {

@@ -1,4 +1,4 @@
-// Diccionario de Hechizos e Ítems disponibles
+// Diccionario de Hechizos disponibles (los ítems viven en FF7CombatEngine.items)
 export const SPELLS_DB = {
   fire:     { id: 'fire',     name: 'Fuego (Fira)',      mp: 22, power: 30, type: 'magic', element: 'fire',      target: 'enemy' },
   ice:      { id: 'ice',      name: 'Hielo (Blizzara)',  mp: 22, power: 30, type: 'magic', element: 'ice',       target: 'enemy' },
@@ -7,11 +7,6 @@ export const SPELLS_DB = {
   barrier:  { id: 'barrier',  name: 'Barrera (Barrier)', mp: 16, power: 0,  type: 'buff',  buff: 'barrier',      target: 'self' },
   mbarrier: { id: 'mbarrier', name: 'Barrera M. (MBarrier)', mp: 16, power: 0, type: 'buff', buff: 'mbarrier',   target: 'self' }
 };
-
-export const ITEMS_DB = [
-  { id: 'hipotion', name: 'Hi-Potion (+1500 HP)', count: 4, healHp: 1500 },
-  { id: 'ether',    name: 'Ether (+150 MP)',      count: 2, healMp: 150 }
-];
 
 export class FF7CombatEngine {
   constructor() {
@@ -74,7 +69,10 @@ export class FF7CombatEngine {
       }
     ];
 
-    this.items = JSON.parse(JSON.stringify(ITEMS_DB));
+    this.items = [
+      { id: 'potion', name: 'Poción', count: 5, healHp: 800 },
+      { id: 'ether',  name: 'Éter',   count: 3, healMp: 120 }
+    ];
     this.readyHeroesQueue = []; // Cola de héroes esperando que el jugador elija comando
     this.actionQueue = [];      // Cola de acciones listas para ejecutarse de 1 en 1
   }
@@ -112,6 +110,8 @@ export class FF7CombatEngine {
     let isCritical = false;
     let absorbed = false;
     let immune = false;
+    let weak = false;
+    let resist = false;
 
     if (!isCure) {
       // 1. Critical Hit (Físico): x2
@@ -137,8 +137,10 @@ export class FF7CombatEngine {
         const rel = target.elements[element];
         if (rel === 'weak') {
           damage *= 2;
+          weak = true;
         } else if (rel === 'resist') {
           damage *= 0.5;
+          resist = true;
         } else if (rel === 'immune') {
           damage = 0;
           immune = true;
@@ -157,7 +159,7 @@ export class FF7CombatEngine {
     // 6. Cap de daño de FF7: 9999
     damage = Math.min(9999, Math.max(0, damage));
 
-    return { amount: damage, isCritical, absorbed, immune, isCure };
+    return { amount: damage, isCritical, absorbed, immune, isCure, weak, resist };
   }
 
   // Aplica el resultado al objetivo y carga su barra de Limit si recibió daño
@@ -165,7 +167,9 @@ export class FF7CombatEngine {
     if (result.immune) return;
 
     if (result.isCure || result.absorbed) {
+      const hpBefore = target.hp;
       target.hp = Math.min(target.maxHp, target.hp + result.amount);
+      result.healed = target.hp - hpBefore; // HP realmente recuperados (para mostrarlos en pantalla)
     } else {
       target.hp = Math.max(0, target.hp - result.amount);
       // Si es un héroe y recibe daño, sube su barra de LIMIT

@@ -36,78 +36,129 @@ export class FF7Minigame {
 
   // Cursor clásico de FF7 (Mano enguantada blanca apuntando a la derecha)
   getGloveCursorHTML() {
-    return `<span class="inline-block w-5 text-white drop-shadow-[2px_2px_0_#000] select-none mr-1">☞</span>`;
+    return `<span class="inline-block w-[2.5cqh] text-[length:max(10px,2.8cqh)] text-white drop-shadow-[2px_2px_0_#000] select-none mr-[0.4cqw]">☞</span>`;
   }
 
   renderLayout() {
+    const checkTouchOrSmallViewport = () =>
+      ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || window.innerWidth < 950 || window.innerHeight < 520;
+
+    this.isMobile = checkTouchOrSmallViewport();
+
     this.container.innerHTML = `
-      <div class="w-full h-full flex flex-col bg-black select-none overflow-hidden relative">
+      <div class="absolute inset-0 w-full h-full overflow-hidden" style="container-type:size;">
+      <div class="w-full h-full flex flex-col bg-black p-[0.6cqh] select-none overflow-hidden">
         
-        <!-- BANNER SUPERIOR DE MENSAJES DE BATALLA (Como el cuadro superior de magia/ataques en FF7) -->
-        <div id="ff7-top-banner" class="hidden absolute top-3 left-1/2 -translate-x-1/2 z-30 ff7-hud-box px-6 py-1.5 text-xl md:text-3xl text-white text-center min-w-[280px]">
+        <!-- BANNER SUPERIOR PROPORCIONAL -->
+        <div id="ff7-top-banner" class="hidden absolute top-[1.5cqh] left-1/2 -translate-x-1/2 z-30 ff7-hud-box px-[2cqw] py-[0.6cqh] text-[length:max(10px,2.8cqh)] text-white text-center min-w-[30cqw]">
         </div>
 
-        <!-- PARTE SUPERIOR (68%): Escena 3D + Números de Daño Flotantes -->
-        <div class="relative w-full h-[68%] bg-black overflow-hidden">
+        <!-- PARTE SUPERIOR (72% de la altura siempre): Escena 3D + Controles PS1 -->
+        <div class="relative w-full flex-1 min-h-0 bg-black overflow-hidden">
           <canvas id="ff7-battle-canvas" class="w-full h-full block" style="image-rendering: pixelated;"></canvas>
           
-          <!-- Capa para mostrar los números de daño/curación sobre los personajes -->
           <div id="ff7-damage-layer" class="pointer-events-none absolute inset-0 z-20 overflow-hidden"></div>
 
-          <!-- NUEVO: Cursor Sprite 2D que flota encima de los modelos 3D al elegir objetivo -->
           <div id="ff7-3d-target-cursor" class="hidden pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 transition-all duration-75">
-            <span class="inline-block text-4xl md:text-5xl text-white drop-shadow-[3px_3px_0_#000] rotate-90 animate-bounce">☞</span>
+            <span class="inline-block text-[length:max(10px,5cqh)] text-white drop-shadow-[2px_2px_0_#000] rotate-90 animate-bounce">☞</span>
           </div>
 
-          <!-- Guía rápida de teclado/mouse arriba a la derecha -->
-          <div class="absolute top-2 right-2 flex items-center gap-2 z-20">
-            <span class="ff7-hud-box px-2 py-0.5 text-xs md:text-base text-cyan-200 hidden sm:inline">
-              [↑↓] Mover | [Enter/Clic] OK | [Backspace/Esc] Atrás
-            </span>
-            <button id="ff7-btn-win-test" class="ff7-hud-box px-2 py-0.5 text-xs md:text-lg text-green-300 hover:text-white">
+          <div class="absolute top-[1cqh] right-[1cqw] flex items-center gap-[1cqw] z-40">
+            <button id="ff7-btn-toggle-pad" class="ff7-hud-box px-[1cqw] py-[0.3cqh] text-[length:max(10px,2.1cqh)] text-cyan-300 hover:text-white">
+              [ 🎮 PAD ]
+            </button>
+            <button id="ff7-btn-win-test" class="ff7-hud-box px-[1cqw] py-[0.3cqh] text-[length:max(10px,2.1cqh)] text-green-300 hover:text-white">
               [ ★ GANAR TEST ]
             </button>
           </div>
+
+          <!-- CONTROLES PS1: Se muestran automáticamente en móvil o al hacer zoom / achicar ventana -->
+          <div id="ff7-ps1-touch-pad" class="${this.isMobile ? 'flex' : 'hidden'} absolute inset-x-[1.5cqw] top-[3rem] bottom-[1.5cqh] z-40 justify-between items-end pointer-events-none">
+            
+            <!-- CRUCETA (D-PAD) ESCALADA EN VH -->
+            <div class="pointer-events-auto grid grid-cols-3 gap-[0.3cqh] h-full max-h-[min(220px,30cqh)] aspect-square shrink-0 touch-none opacity-75 hover:opacity-100">
+              <div></div>
+              <button data-pad="up" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(20px,3.6cqh)] touch-none flex items-center justify-center rounded-t">▲</button>
+              <div></div>
+              <button data-pad="left" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(20px,3.6cqh)] touch-none flex items-center justify-center rounded-l">◀</button>
+              <div class="bg-zinc-900/70 border border-zinc-700"></div>
+              <button data-pad="right" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(20px,3.6cqh)] touch-none flex items-center justify-center rounded-r">▶</button>
+              <div></div>
+              <button data-pad="down" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(20px,3.6cqh)] touch-none flex items-center justify-center rounded-b">▼</button>
+              <div></div>
+            </div>
+
+            <!-- BOTONES O y X ESCALADOS EN VH -->
+            <div class="pointer-events-auto flex items-center gap-[max(14px,2.5cqh)] pr-[1cqw] pb-[0.5cqh] opacity-80 hover:opacity-100">
+              <button data-pad="back" class="w-[clamp(68px,12cqh,110px)] h-[clamp(68px,12cqh,110px)] touch-none rounded-full bg-zinc-800/85 active:scale-90 border-2 border-zinc-400 flex flex-col items-center justify-center">
+                <span class="text-red-400 text-[length:max(22px,3.6cqh)] font-bold leading-none">○</span>
+                <span class="text-[length:max(10px,1.6cqh)] text-gray-300 leading-none">ATRÁS</span>
+              </button>
+              <button data-pad="accept" class="w-[clamp(84px,15cqh,130px)] h-[clamp(84px,15cqh,130px)] touch-none rounded-full bg-zinc-800/85 active:scale-90 border-2 border-zinc-300 flex flex-col items-center justify-center">
+                <span class="text-blue-400 text-[length:max(28px,4.4cqh)] font-bold leading-none">✕</span>
+                <span class="text-[length:max(10px,1.7cqh)] text-gray-200 leading-none">OK</span>
+              </button>
+            </div>
+
+          </div>
         </div>
 
-        <!-- PARTE INFERIOR (32%): HUD Original de Final Fantasy VII + Caja de Comandos Superpuesta -->
-        <div class="w-full h-[32%] grid grid-cols-12 bg-black relative">
+        <!-- PARTE INFERIOR (28% de la altura siempre): Escala idéntico en 1080p, 350% zoom o móvil -->
+        <div class="w-full h-[28%] [@media(max-height:500px)]:h-[42%] shrink-0 grid grid-cols-12 grid-rows-[minmax(0,1fr)] bg-black relative mt-[0.4cqh]">
           
-          <!-- CAJA DE COMANDOS DE FF7 (Se superpone entre el panel izquierdo y derecho cuando un héroe tiene turno) -->
-          <div id="ff7-command-window" class="hidden absolute left-[28%] sm:left-[32%] bottom-1 z-30 w-44 sm:w-52 h-[96%] ff7-hud-box px-3 py-1.5 flex flex-col justify-between">
+          <!-- CAJA DE COMANDOS: Ancho en % (w-[18%]) para que NUNCA pise los números de HP de la derecha -->
+          <div id="ff7-command-window" class="hidden absolute left-[21%] bottom-0 z-30 w-[19%] min-w-[95px] h-full ff7-hud-box px-[1cqw] py-[0.8cqh] flex flex-col justify-between">
           </div>
 
-          <!-- SUBMENÚ DESPLEGABLE (Para lista de Magias, Ítems o Selección de Objetivo) -->
-          <div id="ff7-sub-window" class="hidden absolute left-[48%] sm:left-[50%] bottom-1 z-40 w-64 sm:w-80 h-[96%] ff7-hud-box px-3 py-1.5 flex flex-col justify-between">
+          <!-- SUBMENÚ DESPLEGABLE (Magias / Items / Slots) -->
+          <div id="ff7-sub-window" class="hidden absolute left-[40%] bottom-0 z-40 w-[34%] min-w-[165px] h-full ff7-hud-box px-[1.2cqw] py-[0.8cqh] flex flex-col justify-between">
           </div>
 
-          <!-- PANEL IZQUIERDO: NAME & BARRIER (5 columnas) -->
-          <div class="col-span-5 ff7-hud-box px-2 md:px-4 py-1 flex flex-col justify-between">
-            <div class="flex justify-between items-center text-xs sm:text-base md:text-xl leading-none ff7-label">
+          <!-- PANEL IZQUIERDO: NAME & BARRIER (4 columnas) -->
+          <div class="col-span-4 ff7-hud-box px-[1.2cqw] py-[0.8cqh] flex flex-col justify-between overflow-hidden">
+            <div class="flex justify-between items-center text-[length:max(10px,2.2cqh)] leading-none ff7-label">
               <span>NAME</span>
-              <span class="hidden sm:inline pr-2">BARRIER</span>
+              <span class="hidden sm:inline pr-[0.5cqw]">BARRIER</span>
             </div>
-            <div id="ff7-heroes-names" class="flex-1 flex flex-col justify-around"></div>
+            <div id="ff7-heroes-names" class="flex-1 flex flex-col justify-evenly"></div>
           </div>
 
-          <!-- PANEL DERECHO: HP / MP / LIMIT / TIME (7 columnas) -->
-          <div class="col-span-7 ff7-hud-box px-2 md:px-4 py-1 flex flex-col justify-between">
-            <div class="grid grid-cols-12 items-center text-xs sm:text-base md:text-xl leading-none ff7-label">
-              <span class="col-span-5">HP</span>
+          <!-- PANEL DERECHO: HP / MP / LIMIT / TIME (8 columnas con margen izquierdo para no chocar con el menú) -->
+          <div class="col-span-8 ff7-hud-box pl-[9%] pr-[1.2cqw] py-[0.8cqh] flex flex-col justify-between overflow-hidden">
+            <div class="grid grid-cols-12 items-center text-[length:max(10px,2.2cqh)] leading-none ff7-label">
+              <span class="col-span-4">HP</span>
               <span class="col-span-2">MP</span>
-              <span class="col-span-2 hidden md:inline text-center">LIMIT</span>
-              <span class="col-span-5 md:col-span-3 text-center">TIME</span>
+              <span class="col-span-3 text-center">LIMIT</span>
+              <span class="col-span-3 text-center">TIME</span>
             </div>
-            <div id="ff7-heroes-stats" class="flex-1 flex flex-col justify-around"></div>
+            <div id="ff7-heroes-stats" class="flex-1 flex flex-col justify-evenly"></div>
           </div>
 
         </div>
+      </div>
       </div>
     `;
 
     document.getElementById('ff7-btn-win-test').addEventListener('click', () => {
       this.finishBattle(true);
     });
+
+    // Botón para mostrar/ocultar el mando PS1 manualmente cuando quieras probarlo en Desktop
+    const padEl = document.getElementById('ff7-ps1-touch-pad');
+    document.getElementById('ff7-btn-toggle-pad').addEventListener('click', () => {
+      padEl.classList.toggle('hidden');
+      padEl.classList.toggle('flex');
+    });
+
+    // Si haces zoom (ej. 350%) o rotas el móvil, aparece el mando automáticamente
+    this.padResizeListener = () => {
+      if (!padEl) return;
+      if (checkTouchOrSmallViewport()) {
+        padEl.classList.remove('hidden');
+        padEl.classList.add('flex');
+      }
+    };
+    window.addEventListener('resize', this.padResizeListener);
 
     this.updateHUD();
   }
@@ -125,13 +176,13 @@ export class FF7Minigame {
       const mbarPct = Math.min(100, (h.mbarrier / 100) * 100);
 
       return `
-        <div class="flex justify-between items-center">
-          <span class="text-xl sm:text-3xl md:text-4xl leading-none ${nameColor}">
-            ${h.name} ${h.defending ? '<small class="text-xs text-cyan-300">[DEF]</small>' : ''}
+        <div class="flex justify-between items-center h-[30%]">
+          <span class="text-[length:max(10px,3.1cqh)] leading-none truncate ${nameColor}">
+            ${h.name} ${h.defending ? '<small class="text-[length:max(10px,2cqh)] text-cyan-300">[D]</small>' : ''}
           </span>
-          <div class="hidden sm:flex flex-col gap-1 w-20 md:w-28 bg-zinc-700 p-1 border-2 border-zinc-400">
-            <div class="ff7-slot h-2 md:h-2.5 w-full"><div class="h-full bg-orange-400" style="width:${barPct}%"></div></div>
-            <div class="ff7-slot h-2 md:h-2.5 w-full"><div class="h-full bg-green-400" style="width:${mbarPct}%"></div></div>
+          <div class="hidden sm:flex flex-col gap-[0.4cqh] w-[5.5cqw] max-w-[85px] bg-zinc-700 p-[0.3cqh] border border-zinc-400 shrink-0">
+            <div class="ff7-slot h-[0.8cqh] w-full"><div class="h-full bg-orange-400" style="width:${barPct}%"></div></div>
+            <div class="ff7-slot h-[0.8cqh] w-full"><div class="h-full bg-green-400" style="width:${mbarPct}%"></div></div>
           </div>
         </div>
       `;
@@ -144,24 +195,24 @@ export class FF7Minigame {
       const atbFull = h.atb >= 100;
 
       return `
-        <div class="grid grid-cols-12 items-center gap-1 md:gap-3">
-          <div class="col-span-5 flex flex-col justify-center">
-            <span class="text-lg sm:text-3xl md:text-4xl leading-none tracking-tight ${h.hp < h.maxHp * 0.25 ? 'text-yellow-300' : 'text-white'}">
+        <div class="grid grid-cols-12 items-center gap-[0.8cqw] h-[30%]">
+          <div class="col-span-4 flex flex-col justify-center">
+            <span class="text-[length:max(10px,3cqh)] leading-none tracking-tight ${h.hp < h.maxHp * 0.25 ? 'text-yellow-300' : 'text-white'}">
               ${h.hp}/${h.maxHp}
             </span>
-            <div class="h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-white mt-0.5" style="width:${hpPct}%"></div>
+            <div class="h-[0.4cqh] bg-gradient-to-r from-blue-500 via-cyan-300 to-white mt-[0.2cqh]" style="width:${hpPct}%"></div>
           </div>
           <div class="col-span-2 flex flex-col justify-center">
-            <span class="text-lg sm:text-3xl md:text-4xl leading-none">${h.mp}</span>
-            <div class="h-1 bg-gradient-to-r from-emerald-500 via-green-300 to-white mt-0.5" style="width:${mpPct}%"></div>
+            <span class="text-[length:max(10px,3cqh)] leading-none">${h.mp}</span>
+            <div class="h-[0.4cqh] bg-gradient-to-r from-emerald-500 via-green-300 to-white mt-[0.2cqh]" style="width:${mpPct}%"></div>
           </div>
-          <div class="col-span-2 hidden md:block bg-zinc-700 p-1 border-2 border-zinc-400">
-            <div class="ff7-slot h-3.5 md:h-4 w-full">
+          <div class="col-span-3 bg-zinc-700 p-[0.3cqh] border border-zinc-400">
+            <div class="ff7-slot h-[1.6cqh] w-full">
               <div class="h-full ${limitFull ? 'bg-gradient-to-r from-red-400 via-yellow-300 to-cyan-300 animate-pulse' : 'bg-gradient-to-b from-pink-200 to-pink-500'}" style="width:${h.limit}%"></div>
             </div>
           </div>
-          <div class="col-span-5 md:col-span-3 bg-zinc-700 p-1 border-2 border-zinc-400">
-            <div class="ff7-slot h-3.5 md:h-4 w-full">
+          <div class="col-span-3 bg-zinc-700 p-[0.3cqh] border border-zinc-400">
+            <div class="ff7-slot h-[1.6cqh] w-full">
               <div class="h-full ${atbFull ? 'bg-yellow-200' : 'bg-gradient-to-b from-yellow-100 via-yellow-300 to-amber-500'}" style="width:${h.atb}%"></div>
             </div>
           </div>
@@ -246,115 +297,6 @@ export class FF7Minigame {
     }, 100);
   }
 
-// =========================================================================
-// COLA DE EJECUCIÓN DE ACCIONES
-// =========================================================================
-  enqueuePlayerAction(actionObj) {
-    this.activeHero.atb = 0;
-    this.activeHero = null;
-    this.menuState = 'CLOSED';
-    this.renderMenuWindow();
-    this.actionQueue.push(actionObj);
-    this.updateHUD();
-  }
-
-  enqueueEnemyAttack(enemy) {
-    const aliveHeroes = this.combat.heroes.filter(h => h.alive);
-    if (aliveHeroes.length === 0) return;
-    const randomHero = aliveHeroes[Math.floor(Math.random() * aliveHeroes.length)];
-
-    const isOilMagic = enemy.id === 'oil' && Math.random() < 0.5;
-    this.actionQueue.push({
-      type: 'enemy_attack',
-      actor: enemy,
-      target: randomHero,
-      isMagic: isOilMagic,
-      element: isOilMagic ? 'fire' : null,
-      attackName: isOilMagic ? 'Salpicadura Hirviendo (Fuego)' : 'Golpe Utensilio'
-    });
-  }
-
-  executeAction(action) {
-    if (!action.actor.alive) return;
-
-    if (!action.target.alive) {
-      const pool = this.combat.enemies.includes(action.target)
-        ? this.combat.enemies.filter(e => e.alive)
-        : this.combat.heroes.filter(h => h.alive);
-      if (pool.length === 0) return;
-      action.target = pool[0];
-    }
-
-    this.isExecutingAction = true;
-
-    if (action.type === 'defend') {
-      action.actor.defending = true;
-      this.showBanner(`${action.actor.name} se protege (Daño x0.5)`, 1100);
-
-    } else if (action.type === 'attack') {
-      const res = this.combat.calculateDamage(action.actor, action.target, { isMagic: false, power: 16 });
-      this.combat.applyEffect(action.target, res);
-      this.showBanner(`${action.actor.name} ataca a ${action.target.name}`, 1200);
-      this.spawnFloatingNumber(action.target, res);
-      this.checkEnemyDeath(action.target);
-
-    } else if (action.type === 'magic') {
-      const sp = action.spell;
-      action.actor.mp = Math.max(0, action.actor.mp - sp.mp);
-      this.audio.playSFX('magic');
-      this.showBanner(`${action.actor.name} lanza ${sp.name}`, 1300);
-
-      if (sp.type === 'buff') {
-        if (sp.buff === 'barrier') action.target.barrier = 100;
-        if (sp.buff === 'mbarrier') action.target.mbarrier = 100;
-        this.spawnFloatingText(action.target, sp.buff.toUpperCase(), 'text-cyan-300');
-      } else {
-        const res = this.combat.calculateDamage(action.actor, action.target, {
-          isMagic: true,
-          power: sp.power,
-          element: sp.element,
-          isCure: sp.type === 'cure'
-        });
-        this.combat.applyEffect(action.target, res);
-        this.spawnFloatingNumber(action.target, res);
-        this.checkEnemyDeath(action.target);
-      }
-
-    } else if (action.type === 'item') {
-      const item = this.combat.items[action.itemIndex];
-      if (item && item.count > 0) {
-        item.count--;
-        this.audio.playSFX('magic');
-        this.showBanner(`${action.actor.name} usa ${item.name}`, 1200);
-        if (item.healHp) {
-          action.target.hp = Math.min(action.target.maxHp, action.target.hp + item.healHp);
-          this.spawnFloatingText(action.target, `+${item.healHp} HP`, 'text-green-400');
-        }
-        if (item.healMp) {
-          action.target.mp = Math.min(action.target.maxMp, action.target.mp + item.healMp);
-          this.spawnFloatingText(action.target, `+${item.healMp} MP`, 'text-emerald-300');
-        }
-      }
-
-    } else if (action.type === 'enemy_attack') {
-      const res = this.combat.calculateDamage(action.actor, action.target, {
-        isMagic: action.isMagic,
-        power: 18,
-        element: action.element
-      });
-      this.combat.applyEffect(action.target, res);
-      this.showBanner(`${action.actor.name}: ${action.attackName}`, 1200);
-      this.spawnFloatingNumber(action.target, res);
-    }
-
-    this.updateHUD();
-
-    // Tiempo que dura la pausa de acción antes de que las barras ATB vuelvan a avanzar
-    setTimeout(() => {
-      this.isExecutingAction = false;
-    }, 1350);
-  }
-
   // =========================================================================
   // MENÚS DE COMANDO CON EL GUANTE BLANCO Y SONIDOS
   // =========================================================================
@@ -419,21 +361,20 @@ export class FF7Minigame {
     if (this.menuState === 'MAIN') {
       subWin.classList.add('hidden');
       cmdWin.innerHTML = this.currentOptions.map((opt, idx) => `
-        <div data-idx="${idx}" class="ff7-menu-opt flex items-center text-xl sm:text-2xl md:text-3xl leading-none cursor-pointer py-0.5">
-          ${this.cursorIndex === idx ? this.getGloveCursorHTML() : '<span class="inline-block w-5 mr-1"></span>'}
-          <span>${opt.label}</span>
+        <div data-idx="${idx}" class="ff7-menu-opt flex items-center text-[length:max(10px,3cqh)] leading-none cursor-pointer h-[19%]">
+          ${this.cursorIndex === idx ? this.getGloveCursorHTML() : '<span class="inline-block w-[2.5cqh] mr-[0.4cqw]"></span>'}
+          <span class="truncate">${opt.label}</span>
         </div>
       `).join('');
     } else {
-      // Solo para MAGIC e ITEM
       subWin.classList.remove('hidden');
       subWin.innerHTML = this.currentOptions.map((opt, idx) => `
-        <div data-idx="${idx}" class="ff7-menu-opt flex justify-between items-center text-lg sm:text-2xl leading-none cursor-pointer py-0.5 ${!opt.enabled ? 'text-gray-400' : 'text-white'}">
-          <div class="flex items-center">
-            ${this.cursorIndex === idx ? this.getGloveCursorHTML() : '<span class="inline-block w-5 mr-1"></span>'}
-            <span>${opt.label}</span>
+        <div data-idx="${idx}" class="ff7-menu-opt flex justify-between items-center text-[length:max(10px,2.7cqh)] leading-none cursor-pointer h-[22%] ${!opt.enabled ? 'text-gray-400' : 'text-white'}">
+          <div class="flex items-center truncate">
+            ${this.cursorIndex === idx ? this.getGloveCursorHTML() : '<span class="inline-block w-[2.5cqh] mr-[0.4cqw]"></span>'}
+            <span class="truncate">${opt.label}</span>
           </div>
-          ${opt.rightText ? `<span class="text-cyan-300 text-base sm:text-xl">${opt.rightText}</span>` : ''}
+          ${opt.rightText ? `<span class="text-cyan-300 text-[length:max(10px,2.4cqh)] ml-2 shrink-0">${opt.rightText}</span>` : ''}
         </div>
       `).join('');
     }
@@ -456,39 +397,34 @@ export class FF7Minigame {
     const selected = this.currentOptions[this.cursorIndex];
     if (!selected) return;
 
-    // Si intenta seleccionar LIMIT sin estar cargado (o magia sin MP), suena cursor-error
-    if (!selected.enabled) {
-      this.audio.playSFX('error');
-      return;
-    }
-
     if (this.menuState === 'MAIN') {
+      if (!selected.enabled) {
+        this.audio.playSFX('error');
+        return;
+      }
+      this.audio.playSFX('move');
+
       if (selected.id === 'attack') {
-        this.audio.playSFX('move');
         this.pendingAction = { type: 'attack', actor: this.activeHero };
         this.openTargetMenu('enemy');
-
       } else if (selected.id === 'limit') {
-        this.audio.playSFX('move');
         this.pendingAction = { type: 'limit', actor: this.activeHero };
         this.openTargetMenu('enemy');
-
       } else if (selected.id === 'magic') {
-        this.audio.playSFX('move');
         this.openMagicMenu();
-
       } else if (selected.id === 'defend') {
-        this.audio.playSFX('move');
         this.enqueuePlayerAction({ type: 'defend', actor: this.activeHero, target: this.activeHero });
-
       } else if (selected.id === 'item') {
-        this.audio.playSFX('move');
-        this.openItemMenu();
+        this.openItemMenu(); // <-- Abre el submenú de Poción y Éter en lugar de ejecutar directo
       }
 
     } else if (this.menuState === 'MAGIC') {
-      const spell = SPELLS_DB[selected.spellId];
+      if (!selected.enabled) {
+        this.audio.playSFX('error');
+        return;
+      }
       this.audio.playSFX('move');
+      const spell = SPELLS_DB[selected.spellId];
       this.pendingAction = { type: 'magic', actor: this.activeHero, spell };
 
       // Las barreras solo son aplicables a sí mismo
@@ -499,6 +435,10 @@ export class FF7Minigame {
       }
 
     } else if (this.menuState === 'ITEM') {
+      if (!selected.enabled) {
+        this.audio.playSFX('error');
+        return;
+      }
       this.audio.playSFX('move');
       this.pendingAction = { type: 'item', actor: this.activeHero, itemIndex: selected.itemIndex };
       this.openTargetMenu('ally');
@@ -510,8 +450,7 @@ export class FF7Minigame {
       } else {
         this.enqueuePlayerAction({ ...this.pendingAction, target: selected.targetRef });
       }
-    }nqueuePlayerAction({ ...this.pendingAction, target: selected.targetRef });
-    
+    }
   }
 
   openMagicMenu() {
@@ -532,11 +471,12 @@ export class FF7Minigame {
   openItemMenu() {
     this.menuState = 'ITEM';
     this.cursorIndex = 0;
-    this.currentOptions = this.combat.items.map((it, idx) => ({
-      itemIndex: idx,
-      label: it.name,
-      rightText: `x${it.count}`,
-      enabled: it.count > 0
+    this.currentOptions = this.combat.items.map((item, idx) => ({
+      id: item.id,
+      label: item.name,
+      rightText: `x${item.count}`,
+      enabled: item.count > 0,
+      itemIndex: idx
     }));
     this.renderMenuWindow();
   }
@@ -740,6 +680,50 @@ export class FF7Minigame {
         }
       });
     }
+    // Conectar la Cruceta (D-Pad) y los botones X / O de PS1 para Móvil
+    const moveCursor = (dir) => {
+      if (this.menuState === 'CLOSED' || this.menuState === 'TIFA_SLOTS' || this.isDisposed) return;
+      if (this.currentOptions.length === 0) return;
+      this.cursorIndex = (this.cursorIndex + dir + this.currentOptions.length) % this.currentOptions.length;
+      this.audio.playSFX('move');
+      this.renderMenuWindow();
+    };
+
+    const bindTouchBtn = (id, fn) => {
+      const btn = this.container.querySelector(`[data-pad="${id}"]`);
+      if (!btn) return;
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fn();
+      });
+    };
+
+    bindTouchBtn('up',    () => moveCursor(-1));
+    bindTouchBtn('left',  () => moveCursor(-1));
+    bindTouchBtn('down',  () => moveCursor(1));
+    bindTouchBtn('right', () => moveCursor(1));
+
+    // Botón X (Aceptar / Parar rodillo de Tifa / Cerrar pantalla de victoria)
+    bindTouchBtn('accept', () => {
+      const expScreen = document.getElementById('ff7-exp-screen');
+      if (expScreen) {
+        expScreen.click();
+        return;
+      }
+      if (this.menuState === 'TIFA_SLOTS') {
+        this.stopNextTifaReel();
+        return;
+      }
+      if (this.menuState !== 'CLOSED') {
+        this.confirmSelection();
+      }
+    });
+
+    // Botón O (Retroceder al menú anterior)
+    bindTouchBtn('back', () => {
+      this.goBackMenu();
+    });
   }
   // =========================================================================
   // COLA DE EJECUCIÓN DE ACCIONES (Aliados y Enemigos esperan su turno)
@@ -861,8 +845,6 @@ export class FF7Minigame {
         ? this.battleScene.enemies[action.target.index]
         : this.battleScene.heroes[this.combat.heroes.indexOf(action.target)];
 
-      this.battleScene.playCastAnimation(heroIdx, 'magic', {
-      }, targetUnit3D);
       action.actor.mp = Math.max(0, action.actor.mp - sp.mp);
       this.showBanner(`${action.actor.name}: ${sp.name}`, 2400);
       this.updateHUD();
@@ -905,6 +887,47 @@ export class FF7Minigame {
             }
             this.spawnFloatingNumber(action.target, res);
             this.checkEnemyDeath(action.target);
+          }
+          this.updateHUD();
+        },
+        onComplete: () => {
+          this.isExecutingAction = false;
+        }
+      }, targetUnit3D);
+      return;
+    }
+
+    // 4b. ITEMS (Poción / Éter): paso corto al frente -> efecto verde de Cura -> restaura HP o MP
+    if (action.type === 'item') {
+      const item = this.combat.items[action.itemIndex];
+      if (!item || item.count <= 0) {
+        this.isExecutingAction = false;
+        return;
+      }
+
+      item.count--;
+      const heroIdx = this.combat.heroes.indexOf(action.actor);
+      const targetIdx = this.combat.heroes.indexOf(action.target);
+      const targetUnit3D = this.battleScene.heroes[targetIdx];
+
+      this.showBanner(`${action.actor.name} usa ${item.name}`, 1500);
+      this.updateHUD();
+
+      this.battleScene.playItemAnimation(heroIdx, targetUnit3D, {
+        onItemEffect: () => {
+          this.audio.playSFX('spell_cure');
+          this.battleScene.playSpellVFX('cure', false, targetIdx);
+
+          if (item.healHp) {
+            const before = action.target.hp;
+            action.target.hp = Math.min(action.target.maxHp, action.target.hp + item.healHp);
+            const gained = action.target.hp - before;
+            this.spawnFloatingNumber(action.target, { isCure: true, amount: gained, healed: gained });
+          }
+          if (item.healMp) {
+            const before = action.target.mp;
+            action.target.mp = Math.min(action.target.maxMp, action.target.mp + item.healMp);
+            this.spawnFloatingText(action.target, `+${action.target.mp - before} MP`, 'text-cyan-300');
           }
           this.updateHUD();
         },
@@ -1004,11 +1027,21 @@ export class FF7Minigame {
     let colorClass = 'text-white';
 
     if (res.immune) {
-      text = 'IMMUNE (0)';
+      text = 'INMUNE!';
       colorClass = 'text-gray-300';
-    } else if (res.isCure || res.absorbed) {
-      text = `+${res.amount}`;
+    } else if (res.absorbed) {
+      // El enemigo absorbe el elemento: se cura (en verde) y mostramos los HP que recuperó
+      text = `ABSORB +${res.healed !== undefined ? res.healed : res.amount}`;
       colorClass = 'text-green-400';
+    } else if (res.isCure) {
+      text = `+${res.healed !== undefined ? res.healed : res.amount}`;
+      colorClass = 'text-green-400';
+    } else if (res.weak) {
+      text = `DÉBIL! ${res.amount}`;
+      colorClass = 'text-orange-400';
+    } else if (res.resist) {
+      text = `RESIST! ${res.amount}`;
+      colorClass = 'text-sky-300';
     } else if (res.isCritical) {
       text = `CRIT! ${res.amount}`;
       colorClass = 'text-yellow-300 scale-125';
@@ -1017,31 +1050,48 @@ export class FF7Minigame {
     this.spawnFloatingText(target, text, colorClass);
   }
 
-  spawnFloatingText(target, text, colorClass) {
+  // Texto flotante (daño, curación, estados). Sigue a la unidad en cada frame porque la cámara
+  // cambia de ángulo durante las animaciones: así queda SIEMPRE encima del personaje/enemigo.
+  spawnFloatingText(target, text, colorClass = 'text-white') {
     const layer = document.getElementById('ff7-damage-layer');
     if (!layer || !this.battleScene) return;
 
     const isEnemy = this.combat.enemies.includes(target);
     const idx = isEnemy ? target.index : this.combat.heroes.indexOf(target);
-
-    // Proyecta la posición 3D actual según el ángulo de cámara activo en este instante
-    const screenPos = this.battleScene.getUnitScreenPosition(isEnemy, idx);
-    const leftPct = Math.max(12, Math.min(88, screenPos.x));
-    const topPct = Math.max(15, Math.min(82, screenPos.y));
+    const scale = colorClass.includes('scale-125') ? 1.25 : 1;
+    const classes = colorClass.replace('scale-125', '').trim();
 
     const el = document.createElement('div');
-    el.className = `absolute -translate-x-1/2 font-bold text-3xl md:text-5xl drop-shadow-[3px_3px_0_#000] transition-all duration-700 ${colorClass}`;
-    el.style.left = `${leftPct}%`;
-    el.style.top = `${topPct}%`;
+    el.className = `absolute whitespace-nowrap font-bold text-3xl md:text-5xl drop-shadow-[3px_3px_0_#000] ${classes}`;
+    el.style.opacity = '0';
     el.textContent = text;
-
     layer.appendChild(el);
-    requestAnimationFrame(() => {
-      el.style.transform = 'translateY(-35px)';
-      el.style.opacity = '0';
-    });
 
-    setTimeout(() => el.remove(), 800);
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const DURATION = 900;
+    const startTime = performance.now();
+    let last = { x: 50, y: 40 };
+
+    const tick = (now) => {
+      if (this.isDisposed || !el.isConnected) { el.remove(); return; }
+
+      const p = Math.min(1, (now - startTime) / DURATION);
+      const units = isEnemy ? this.battleScene.enemies : this.battleScene.heroes;
+      if (units[idx]) {
+        // La cámara se mueve en el mismo frame: refrescamos su matriz antes de proyectar
+        this.battleScene.camera.updateMatrixWorld(true);
+        last = this.battleScene.getUnitScreenPosition(isEnemy, idx);
+      }
+
+      el.style.left = `${clamp(last.x, 6, 94)}%`;
+      el.style.top = `${clamp(last.y, 8, 90)}%`;
+      el.style.transform = `translate(-50%, ${-p * 40}px) scale(${scale})`;
+      el.style.opacity = p < 0.65 ? '1' : `${1 - (p - 0.65) / 0.35}`;
+
+      if (p < 1) requestAnimationFrame(tick);
+      else el.remove();
+    };
+    tick(startTime);
   }
 
   showBanner(msg, duration = 1200) {
@@ -1213,6 +1263,7 @@ export class FF7Minigame {
     this.isDisposed = true;
     clearInterval(this.atbInterval);
     window.removeEventListener('keydown', this.keyHandler);
+    window.removeEventListener('resize', this.padResizeListener);
     this.audio.stopBGM();
     if (this.battleScene) {
       this.battleScene.destroy();
