@@ -297,115 +297,6 @@ export class FF7Minigame {
     }, 100);
   }
 
-// =========================================================================
-// COLA DE EJECUCIÓN DE ACCIONES
-// =========================================================================
-  enqueuePlayerAction(actionObj) {
-    this.activeHero.atb = 0;
-    this.activeHero = null;
-    this.menuState = 'CLOSED';
-    this.renderMenuWindow();
-    this.actionQueue.push(actionObj);
-    this.updateHUD();
-  }
-
-  enqueueEnemyAttack(enemy) {
-    const aliveHeroes = this.combat.heroes.filter(h => h.alive);
-    if (aliveHeroes.length === 0) return;
-    const randomHero = aliveHeroes[Math.floor(Math.random() * aliveHeroes.length)];
-
-    const isOilMagic = enemy.id === 'oil' && Math.random() < 0.5;
-    this.actionQueue.push({
-      type: 'enemy_attack',
-      actor: enemy,
-      target: randomHero,
-      isMagic: isOilMagic,
-      element: isOilMagic ? 'fire' : null,
-      attackName: isOilMagic ? 'Salpicadura Hirviendo (Fuego)' : 'Golpe Utensilio'
-    });
-  }
-
-  executeAction(action) {
-    if (!action.actor.alive) return;
-
-    if (!action.target.alive) {
-      const pool = this.combat.enemies.includes(action.target)
-        ? this.combat.enemies.filter(e => e.alive)
-        : this.combat.heroes.filter(h => h.alive);
-      if (pool.length === 0) return;
-      action.target = pool[0];
-    }
-
-    this.isExecutingAction = true;
-
-    if (action.type === 'defend') {
-      action.actor.defending = true;
-      this.showBanner(`${action.actor.name} se protege (Daño x0.5)`, 1100);
-
-    } else if (action.type === 'attack') {
-      const res = this.combat.calculateDamage(action.actor, action.target, { isMagic: false, power: 16 });
-      this.combat.applyEffect(action.target, res);
-      this.showBanner(`${action.actor.name} ataca a ${action.target.name}`, 1200);
-      this.spawnFloatingNumber(action.target, res);
-      this.checkEnemyDeath(action.target);
-
-    } else if (action.type === 'magic') {
-      const sp = action.spell;
-      action.actor.mp = Math.max(0, action.actor.mp - sp.mp);
-      this.audio.playSFX('magic');
-      this.showBanner(`${action.actor.name} lanza ${sp.name}`, 1300);
-
-      if (sp.type === 'buff') {
-        if (sp.buff === 'barrier') action.target.barrier = 100;
-        if (sp.buff === 'mbarrier') action.target.mbarrier = 100;
-        this.spawnFloatingText(action.target, sp.buff.toUpperCase(), 'text-cyan-300');
-      } else {
-        const res = this.combat.calculateDamage(action.actor, action.target, {
-          isMagic: true,
-          power: sp.power,
-          element: sp.element,
-          isCure: sp.type === 'cure'
-        });
-        this.combat.applyEffect(action.target, res);
-        this.spawnFloatingNumber(action.target, res);
-        this.checkEnemyDeath(action.target);
-      }
-
-    } else if (action.type === 'item') {
-      const item = this.combat.items[action.itemIndex];
-      if (item && item.count > 0) {
-        item.count--;
-        this.audio.playSFX('magic');
-        this.showBanner(`${action.actor.name} usa ${item.name}`, 1200);
-        if (item.healHp) {
-          action.target.hp = Math.min(action.target.maxHp, action.target.hp + item.healHp);
-          this.spawnFloatingText(action.target, `+${item.healHp} HP`, 'text-green-400');
-        }
-        if (item.healMp) {
-          action.target.mp = Math.min(action.target.maxMp, action.target.mp + item.healMp);
-          this.spawnFloatingText(action.target, `+${item.healMp} MP`, 'text-emerald-300');
-        }
-      }
-
-    } else if (action.type === 'enemy_attack') {
-      const res = this.combat.calculateDamage(action.actor, action.target, {
-        isMagic: action.isMagic,
-        power: 18,
-        element: action.element
-      });
-      this.combat.applyEffect(action.target, res);
-      this.showBanner(`${action.actor.name}: ${action.attackName}`, 1200);
-      this.spawnFloatingNumber(action.target, res);
-    }
-
-    this.updateHUD();
-
-    // Tiempo que dura la pausa de acción antes de que las barras ATB vuelvan a avanzar
-    setTimeout(() => {
-      this.isExecutingAction = false;
-    }, 1350);
-  }
-
   // =========================================================================
   // MENÚS DE COMANDO CON EL GUANTE BLANCO Y SONIDOS
   // =========================================================================
@@ -506,39 +397,34 @@ export class FF7Minigame {
     const selected = this.currentOptions[this.cursorIndex];
     if (!selected) return;
 
-    // Si intenta seleccionar LIMIT sin estar cargado (o magia sin MP), suena cursor-error
-    if (!selected.enabled) {
-      this.audio.playSFX('error');
-      return;
-    }
-
     if (this.menuState === 'MAIN') {
+      if (!selected.enabled) {
+        this.audio.playSFX('error');
+        return;
+      }
+      this.audio.playSFX('move');
+
       if (selected.id === 'attack') {
-        this.audio.playSFX('move');
         this.pendingAction = { type: 'attack', actor: this.activeHero };
         this.openTargetMenu('enemy');
-
       } else if (selected.id === 'limit') {
-        this.audio.playSFX('move');
         this.pendingAction = { type: 'limit', actor: this.activeHero };
         this.openTargetMenu('enemy');
-
       } else if (selected.id === 'magic') {
-        this.audio.playSFX('move');
         this.openMagicMenu();
-
       } else if (selected.id === 'defend') {
-        this.audio.playSFX('move');
         this.enqueuePlayerAction({ type: 'defend', actor: this.activeHero, target: this.activeHero });
-
       } else if (selected.id === 'item') {
-        this.audio.playSFX('move');
-        this.openItemMenu();
+        this.openItemMenu(); // <-- Abre el submenú de Poción y Éter en lugar de ejecutar directo
       }
 
     } else if (this.menuState === 'MAGIC') {
-      const spell = SPELLS_DB[selected.spellId];
+      if (!selected.enabled) {
+        this.audio.playSFX('error');
+        return;
+      }
       this.audio.playSFX('move');
+      const spell = SPELLS_DB[selected.spellId];
       this.pendingAction = { type: 'magic', actor: this.activeHero, spell };
 
       // Las barreras solo son aplicables a sí mismo
@@ -549,6 +435,10 @@ export class FF7Minigame {
       }
 
     } else if (this.menuState === 'ITEM') {
+      if (!selected.enabled) {
+        this.audio.playSFX('error');
+        return;
+      }
       this.audio.playSFX('move');
       this.pendingAction = { type: 'item', actor: this.activeHero, itemIndex: selected.itemIndex };
       this.openTargetMenu('ally');
@@ -560,8 +450,7 @@ export class FF7Minigame {
       } else {
         this.enqueuePlayerAction({ ...this.pendingAction, target: selected.targetRef });
       }
-    }nqueuePlayerAction({ ...this.pendingAction, target: selected.targetRef });
-    
+    }
   }
 
   openMagicMenu() {
@@ -582,11 +471,12 @@ export class FF7Minigame {
   openItemMenu() {
     this.menuState = 'ITEM';
     this.cursorIndex = 0;
-    this.currentOptions = this.combat.items.map((it, idx) => ({
-      itemIndex: idx,
-      label: it.name,
-      rightText: `x${it.count}`,
-      enabled: it.count > 0
+    this.currentOptions = this.combat.items.map((item, idx) => ({
+      id: item.id,
+      label: item.name,
+      rightText: `x${item.count}`,
+      enabled: item.count > 0,
+      itemIndex: idx
     }));
     this.renderMenuWindow();
   }
@@ -955,8 +845,6 @@ export class FF7Minigame {
         ? this.battleScene.enemies[action.target.index]
         : this.battleScene.heroes[this.combat.heroes.indexOf(action.target)];
 
-      this.battleScene.playCastAnimation(heroIdx, 'magic', {
-      }, targetUnit3D);
       action.actor.mp = Math.max(0, action.actor.mp - sp.mp);
       this.showBanner(`${action.actor.name}: ${sp.name}`, 2400);
       this.updateHUD();
@@ -999,6 +887,47 @@ export class FF7Minigame {
             }
             this.spawnFloatingNumber(action.target, res);
             this.checkEnemyDeath(action.target);
+          }
+          this.updateHUD();
+        },
+        onComplete: () => {
+          this.isExecutingAction = false;
+        }
+      }, targetUnit3D);
+      return;
+    }
+
+    // 4b. ITEMS (Poción / Éter): paso corto al frente -> efecto verde de Cura -> restaura HP o MP
+    if (action.type === 'item') {
+      const item = this.combat.items[action.itemIndex];
+      if (!item || item.count <= 0) {
+        this.isExecutingAction = false;
+        return;
+      }
+
+      item.count--;
+      const heroIdx = this.combat.heroes.indexOf(action.actor);
+      const targetIdx = this.combat.heroes.indexOf(action.target);
+      const targetUnit3D = this.battleScene.heroes[targetIdx];
+
+      this.showBanner(`${action.actor.name} usa ${item.name}`, 1500);
+      this.updateHUD();
+
+      this.battleScene.playItemAnimation(heroIdx, targetUnit3D, {
+        onItemEffect: () => {
+          this.audio.playSFX('spell_cure');
+          this.battleScene.playSpellVFX('cure', false, targetIdx);
+
+          if (item.healHp) {
+            const before = action.target.hp;
+            action.target.hp = Math.min(action.target.maxHp, action.target.hp + item.healHp);
+            const gained = action.target.hp - before;
+            this.spawnFloatingNumber(action.target, { isCure: true, amount: gained, healed: gained });
+          }
+          if (item.healMp) {
+            const before = action.target.mp;
+            action.target.mp = Math.min(action.target.maxMp, action.target.mp + item.healMp);
+            this.spawnFloatingText(action.target, `+${action.target.mp - before} MP`, 'text-cyan-300');
           }
           this.updateHUD();
         },
@@ -1098,11 +1027,21 @@ export class FF7Minigame {
     let colorClass = 'text-white';
 
     if (res.immune) {
-      text = 'IMMUNE (0)';
+      text = 'INMUNE!';
       colorClass = 'text-gray-300';
-    } else if (res.isCure || res.absorbed) {
-      text = `+${res.amount}`;
+    } else if (res.absorbed) {
+      // El enemigo absorbe el elemento: se cura (en verde) y mostramos los HP que recuperó
+      text = `ABSORB +${res.healed !== undefined ? res.healed : res.amount}`;
       colorClass = 'text-green-400';
+    } else if (res.isCure) {
+      text = `+${res.healed !== undefined ? res.healed : res.amount}`;
+      colorClass = 'text-green-400';
+    } else if (res.weak) {
+      text = `DÉBIL! ${res.amount}`;
+      colorClass = 'text-orange-400';
+    } else if (res.resist) {
+      text = `RESIST! ${res.amount}`;
+      colorClass = 'text-sky-300';
     } else if (res.isCritical) {
       text = `CRIT! ${res.amount}`;
       colorClass = 'text-yellow-300 scale-125';
@@ -1111,31 +1050,48 @@ export class FF7Minigame {
     this.spawnFloatingText(target, text, colorClass);
   }
 
-  spawnFloatingText(target, text, colorClass) {
+  // Texto flotante (daño, curación, estados). Sigue a la unidad en cada frame porque la cámara
+  // cambia de ángulo durante las animaciones: así queda SIEMPRE encima del personaje/enemigo.
+  spawnFloatingText(target, text, colorClass = 'text-white') {
     const layer = document.getElementById('ff7-damage-layer');
     if (!layer || !this.battleScene) return;
 
     const isEnemy = this.combat.enemies.includes(target);
     const idx = isEnemy ? target.index : this.combat.heroes.indexOf(target);
-
-    // Proyecta la posición 3D actual según el ángulo de cámara activo en este instante
-    const screenPos = this.battleScene.getUnitScreenPosition(isEnemy, idx);
-    const leftPct = Math.max(12, Math.min(88, screenPos.x));
-    const topPct = Math.max(15, Math.min(82, screenPos.y));
+    const scale = colorClass.includes('scale-125') ? 1.25 : 1;
+    const classes = colorClass.replace('scale-125', '').trim();
 
     const el = document.createElement('div');
-    el.className = `absolute -translate-x-1/2 font-bold text-3xl md:text-5xl drop-shadow-[3px_3px_0_#000] transition-all duration-700 ${colorClass}`;
-    el.style.left = `${leftPct}%`;
-    el.style.top = `${topPct}%`;
+    el.className = `absolute whitespace-nowrap font-bold text-3xl md:text-5xl drop-shadow-[3px_3px_0_#000] ${classes}`;
+    el.style.opacity = '0';
     el.textContent = text;
-
     layer.appendChild(el);
-    requestAnimationFrame(() => {
-      el.style.transform = 'translateY(-35px)';
-      el.style.opacity = '0';
-    });
 
-    setTimeout(() => el.remove(), 800);
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const DURATION = 900;
+    const startTime = performance.now();
+    let last = { x: 50, y: 40 };
+
+    const tick = (now) => {
+      if (this.isDisposed || !el.isConnected) { el.remove(); return; }
+
+      const p = Math.min(1, (now - startTime) / DURATION);
+      const units = isEnemy ? this.battleScene.enemies : this.battleScene.heroes;
+      if (units[idx]) {
+        // La cámara se mueve en el mismo frame: refrescamos su matriz antes de proyectar
+        this.battleScene.camera.updateMatrixWorld(true);
+        last = this.battleScene.getUnitScreenPosition(isEnemy, idx);
+      }
+
+      el.style.left = `${clamp(last.x, 6, 94)}%`;
+      el.style.top = `${clamp(last.y, 8, 90)}%`;
+      el.style.transform = `translate(-50%, ${-p * 40}px) scale(${scale})`;
+      el.style.opacity = p < 0.65 ? '1' : `${1 - (p - 0.65) / 0.35}`;
+
+      if (p < 1) requestAnimationFrame(tick);
+      else el.remove();
+    };
+    tick(startTime);
   }
 
   showBanner(msg, duration = 1200) {

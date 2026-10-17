@@ -1,7 +1,7 @@
-import { ThreeHub } from './three-hub.js?v=5';
-import { AudioManager } from './audio-manager.js?v=5';
-import { FF7Minigame } from './minigames/ff7/game-ff7.js?v=5';
-import { BlasphemousPotatoGame } from './minijuegos/BLASFEPAPA/game-blasfepapa.js?v=5';
+import { ThreeHub } from './three-hub.js?v=9';
+import { AudioManager } from './audio-manager.js?v=9';
+import { FF7Minigame } from './minigames/ff7/game-ff7.js?v=9';
+import { BlasphemousPotatoGame } from './minijuegos/BLASFEPAPA/game-blasfepapa.js?v=9';
 
 // 1. LISTA DE CANCIONES (Guarda tus archivos .mp3 en ./assets/audio/)
 const dnbPlaylist = [
