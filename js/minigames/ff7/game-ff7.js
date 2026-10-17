@@ -447,7 +447,7 @@ export class FF7Minigame {
     if (this.menuState === 'MAIN') {
       subWin.classList.add('hidden');
       cmdWin.innerHTML = this.currentOptions.map((opt, idx) => `
-        <div data-idx="${idx}" class="ff7-menu-opt flex items-center text-xl sm:text-2xl md:text-3xl leading-none cursor-pointer py-0.5">
+        <div data-idx="${idx}" class="ff7-menu-opt flex items-center text-base sm:text-2xl md:text-3xl leading-none cursor-pointer py-0.5">
           ${this.cursorIndex === idx ? this.getGloveCursorHTML() : '<span class="inline-block w-5 mr-1"></span>'}
           <span>${opt.label}</span>
         </div>

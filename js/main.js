@@ -59,17 +59,17 @@ function handleNodeSelection(recipe, index) {
 
   if (recipe.unlocked) {
     titleEl.textContent = `★ ${recipe.unlockedName}`;
-    titleEl.className = 'text-lg md:text-2xl text-green-400 leading-none';
+    titleEl.className = 'text-sm sm:text-lg md:text-2xl text-green-400 leading-tight truncate';
     descEl.textContent = recipe.unlockedDesc;
     btnAction.textContent = '✔ JUGAR DE NUEVO';
-    btnAction.className = 'w-full bg-blue-700 hover:bg-blue-600 border border-white py-1.5 px-3 text-sm md:text-lg text-white active:scale-95 transition mt-1';
+    btnAction.className = 'shrink-0 w-full sm:w-auto bg-blue-700 hover:bg-blue-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition';
     btnAction.classList.remove('hidden');
   } else {
     titleEl.textContent = recipe.lockedName;
-    titleEl.className = 'text-lg md:text-2xl text-red-400 leading-none';
+    titleEl.className = 'text-sm sm:text-lg md:text-2xl text-red-400 leading-tight truncate';
     descEl.textContent = recipe.lockedDesc;
     btnAction.textContent = `▶ DESBLOQUEAR JUEGO`;
-    btnAction.className = 'ps1-blink w-full bg-red-700 hover:bg-red-600 border border-white py-1.5 px-3 text-sm md:text-lg text-white active:scale-95 transition mt-1';
+    btnAction.className = 'ps1-blink shrink-0 w-full sm:w-auto bg-red-700 hover:bg-red-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition';
     btnAction.classList.remove('hidden');
   }
 }
