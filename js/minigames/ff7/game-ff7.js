@@ -76,27 +76,27 @@ export class FF7Minigame {
           <div id="ff7-ps1-touch-pad" class="${this.isMobile ? 'flex' : 'hidden'} absolute inset-x-[1.5cqw] bottom-[1.5cqh] z-40 justify-between items-end pointer-events-none">
             
             <!-- CRUCETA (D-PAD) ESCALADA EN VH -->
-            <div class="pointer-events-auto grid grid-cols-3 gap-[0.3cqh] w-[18cqh] h-[18cqh] opacity-75 hover:opacity-100">
+            <div class="pointer-events-auto grid grid-cols-3 gap-[0.3cqh] w-[clamp(138px,26cqh,220px)] h-[clamp(138px,26cqh,220px)] touch-none opacity-75 hover:opacity-100">
               <div></div>
-              <button data-pad="up" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(10px,2.2cqh)] flex items-center justify-center rounded-t">▲</button>
+              <button data-pad="up" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(20px,3.6cqh)] touch-none flex items-center justify-center rounded-t">▲</button>
               <div></div>
-              <button data-pad="left" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(10px,2.2cqh)] flex items-center justify-center rounded-l">◀</button>
+              <button data-pad="left" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(20px,3.6cqh)] touch-none flex items-center justify-center rounded-l">◀</button>
               <div class="bg-zinc-900/70 border border-zinc-700"></div>
-              <button data-pad="right" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(10px,2.2cqh)] flex items-center justify-center rounded-r">▶</button>
+              <button data-pad="right" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(20px,3.6cqh)] touch-none flex items-center justify-center rounded-r">▶</button>
               <div></div>
-              <button data-pad="down" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(10px,2.2cqh)] flex items-center justify-center rounded-b">▼</button>
+              <button data-pad="down" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(20px,3.6cqh)] touch-none flex items-center justify-center rounded-b">▼</button>
               <div></div>
             </div>
 
             <!-- BOTONES O y X ESCALADOS EN VH -->
-            <div class="pointer-events-auto flex items-center gap-[2cqh] pr-[1cqw] pb-[0.5cqh] opacity-80 hover:opacity-100">
-              <button data-pad="back" class="w-[8.5cqh] h-[8.5cqh] rounded-full bg-zinc-800/85 active:scale-90 border-2 border-zinc-400 flex flex-col items-center justify-center">
-                <span class="text-red-400 text-[length:max(10px,3.2cqh)] font-bold leading-none">○</span>
-                <span class="text-[length:max(7px,1.4cqh)] text-gray-300 leading-none">ATRÁS</span>
+            <div class="pointer-events-auto flex items-center gap-[max(14px,2.5cqh)] pr-[1cqw] pb-[0.5cqh] opacity-80 hover:opacity-100">
+              <button data-pad="back" class="w-[clamp(68px,12cqh,110px)] h-[clamp(68px,12cqh,110px)] touch-none rounded-full bg-zinc-800/85 active:scale-90 border-2 border-zinc-400 flex flex-col items-center justify-center">
+                <span class="text-red-400 text-[length:max(22px,3.6cqh)] font-bold leading-none">○</span>
+                <span class="text-[length:max(10px,1.6cqh)] text-gray-300 leading-none">ATRÁS</span>
               </button>
-              <button data-pad="accept" class="w-[10cqh] h-[10cqh] rounded-full bg-zinc-800/85 active:scale-90 border-2 border-zinc-300 flex flex-col items-center justify-center">
-                <span class="text-blue-400 text-[length:max(10px,3.8cqh)] font-bold leading-none">✕</span>
-                <span class="text-[length:max(7px,1.5cqh)] text-gray-200 leading-none">OK</span>
+              <button data-pad="accept" class="w-[clamp(84px,15cqh,130px)] h-[clamp(84px,15cqh,130px)] touch-none rounded-full bg-zinc-800/85 active:scale-90 border-2 border-zinc-300 flex flex-col items-center justify-center">
+                <span class="text-blue-400 text-[length:max(28px,4.4cqh)] font-bold leading-none">✕</span>
+                <span class="text-[length:max(10px,1.7cqh)] text-gray-200 leading-none">OK</span>
               </button>
             </div>
 
@@ -800,7 +800,7 @@ export class FF7Minigame {
     };
 
     const bindTouchBtn = (id, fn) => {
-      const btn = document.getElementById(id);
+      const btn = this.container.querySelector(`[data-pad="${id}"]`);
       if (!btn) return;
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
@@ -809,13 +809,13 @@ export class FF7Minigame {
       });
     };
 
-    bindTouchBtn('ps1-btn-up',    () => moveCursor(-1));
-    bindTouchBtn('ps1-btn-left',  () => moveCursor(-1));
-    bindTouchBtn('ps1-btn-down',  () => moveCursor(1));
-    bindTouchBtn('ps1-btn-right', () => moveCursor(1));
+    bindTouchBtn('up',    () => moveCursor(-1));
+    bindTouchBtn('left',  () => moveCursor(-1));
+    bindTouchBtn('down',  () => moveCursor(1));
+    bindTouchBtn('right', () => moveCursor(1));
 
     // Botón X (Aceptar / Parar rodillo de Tifa / Cerrar pantalla de victoria)
-    bindTouchBtn('ps1-btn-x', () => {
+    bindTouchBtn('accept', () => {
       const expScreen = document.getElementById('ff7-exp-screen');
       if (expScreen) {
         expScreen.click();
@@ -831,7 +831,7 @@ export class FF7Minigame {
     });
 
     // Botón O (Retroceder al menú anterior)
-    bindTouchBtn('ps1-btn-o', () => {
+    bindTouchBtn('back', () => {
       this.goBackMenu();
     });
   }
