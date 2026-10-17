@@ -73,10 +73,10 @@ export class FF7Minigame {
           </div>
 
           <!-- CONTROLES PS1: Se muestran automáticamente en móvil o al hacer zoom / achicar ventana -->
-          <div id="ff7-ps1-touch-pad" class="${this.isMobile ? 'flex' : 'hidden'} absolute inset-x-[1.5cqw] bottom-[1.5cqh] z-40 justify-between items-end pointer-events-none">
+          <div id="ff7-ps1-touch-pad" class="${this.isMobile ? 'flex' : 'hidden'} absolute inset-x-[1.5cqw] top-[3rem] bottom-[1.5cqh] z-40 justify-between items-end pointer-events-none">
             
             <!-- CRUCETA (D-PAD) ESCALADA EN VH -->
-            <div class="pointer-events-auto grid grid-cols-3 gap-[0.3cqh] w-[clamp(138px,26cqh,220px)] h-[clamp(138px,26cqh,220px)] touch-none opacity-75 hover:opacity-100">
+            <div class="pointer-events-auto grid grid-cols-3 gap-[0.3cqh] h-full max-h-[min(220px,30cqh)] aspect-square shrink-0 touch-none opacity-75 hover:opacity-100">
               <div></div>
               <button data-pad="up" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[length:max(20px,3.6cqh)] touch-none flex items-center justify-center rounded-t">▲</button>
               <div></div>

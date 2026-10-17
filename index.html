@@ -93,6 +93,21 @@
     <div id="minigame-stage" class="w-full h-full relative overflow-hidden flex items-center justify-center"></div>
   </section>
 
-  <script type="module" src="./js/main.js"></script>
+  <!-- PANTALLA DE ENTRADA: espera a que la música esté lista y aporta el gesto necesario para el audio -->
+  <div id="boot-screen" class="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center gap-3 sm:gap-5 p-4 h-[100dvh] transition-opacity duration-500">
+    <h1 class="text-2xl sm:text-4xl md:text-5xl text-yellow-400 tracking-widest text-center leading-none">PROYECTO: SOLANUM</h1>
+    <p class="text-xs sm:text-base text-cyan-300 text-center leading-tight">🎧 Se recomienda usar audífonos</p>
+
+    <div class="w-[min(70vw,420px)] h-3 bg-zinc-800 border border-blue-400">
+      <div id="boot-bar" class="h-full w-0 bg-cyan-300 transition-[width] duration-300"></div>
+    </div>
+    <p id="boot-status" class="text-xs sm:text-base text-gray-300 text-center leading-tight">CARGANDO MÚSICA...</p>
+
+    <button id="btn-enter" disabled class="ps1-box px-6 py-2 sm:px-10 sm:py-3 text-sm sm:text-xl text-yellow-300 hover:text-white disabled:opacity-40 disabled:cursor-wait">
+      CARGANDO...
+    </button>
+  </div>
+
+  <script type="module" src="./js/main.js?v=5"></script>
 </body>
 </html>
