@@ -1,6 +1,7 @@
 import { ThreeHub } from './three-hub.js';
 import { AudioManager } from './audio-manager.js';
 import { BlasphemousPotatoGame } from './minijuegos/BLASFEPAPA/game-blasfepapa.js';
+import {RhythmPotatoGame} from './minijuegos/PAPAHERO/game-rhythm.js';
 
 // 1. LISTA DE CANCIONES (Guarda tus archivos .mp3 en ./assets/audio/)
 const dnbPlaylist = [
@@ -115,9 +116,10 @@ btnAction.addEventListener('click', () => {
       // NODO #01 - Integrante 1
       minigameStage.innerHTML = '<p class="text-yellow-300 text-xl text-center px-4">Minijuego #01 (FF7) pendiente de integración...</p>';
 
-    } else if (activeRecipe.id === 'survivor') {
+    } else if (activeRecipe.id === 'rhythm') {
       // NODO #02 - Integrante 2
-      minigameStage.innerHTML = '<p class="text-yellow-300 text-xl text-center px-4">Minijuego #02 (Survivor) pendiente de integración...</p>';
+      minigameTitle.textContent = 'DESAFÍO #02 — SINFONÍA DEL HASHBROWN';
+      currentGameInstance = new RhythmPotatoGame(minigameStage, onWinMinigame, bgm);
 
     } else if (activeRecipe.id === 'masher') {
       // NODO #03 - Integrante 3
