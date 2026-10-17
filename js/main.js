@@ -2,6 +2,7 @@ import { ThreeHub } from './three-hub.js?v=11';
 import { AudioManager } from './audio-manager.js?v=11';
 import { FF7Minigame } from './minigames/ff7/game-ff7.js?v=11';
 import { BlasphemousPotatoGame } from './minigames/BLASFEPAPA/game-blasfepapa.js?v=11';
+import { RhythmPotatoGame } from './minijuegos/PAPAHERO/game-rhythm.js?v=11';
 import { startPapaGame, stopPapaGame } from './minigames/tbop/tbop.js?v=11';
 import { RECIPES } from './recipes.js?v=11';
 
@@ -256,6 +257,10 @@ function launchMinigame() {
   } else if (recipe.id === 'survivor') {
     // NODO #02 - Survivor
     minigameStage.innerHTML = '<p class="text-yellow-300 text-xl text-center px-4">Minijuego #02 (Survivor) pendiente de integración...</p>';
+
+  } else if (recipe.id === 'rhythm') {
+    // NODO #02 - Integrante 2
+    currentGameInstance = new RhythmPotatoGame(minigameStage, onWinMinigame, bgm);
 
   } else if (recipe.id === 'masher') {
     // NODO #03 - THE BINDING OF PAPA (TBOP)

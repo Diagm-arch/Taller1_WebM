@@ -20,11 +20,11 @@ export class ThreeHub {
         modelPath: null // Ej: './assets/models/papas-fritas.glb' si usan Blender después
       },
       {
-        id: 'survivor',
+        id: 'rhythm',
         author: 'Integrante 2',
         lockedName: '??? [ARCHIVO ENCRIPTADO #02]',
         unlockedName: 'HASHBROWNS DORADOS',
-        lockedDesc: 'Rodeado de una horda de ralladores. Supera el minijuego de supervivencia para desencriptar.',
+        lockedDesc: 'Manten el ritmo para conseguir la receta. ¡Haz clic para entrar al desafío!',
         unlockedDesc: 'Papa rallada compactada en una coraza dorada. +85 Defensa Desayuno.',
         unlocked: false,
         modelPath: null
@@ -228,7 +228,7 @@ createSingleQuestionMarkMesh(material) {
         foodGroup.add(fry);
       }
 
-    } else if (recipeId === 'survivor') {
+    } else if (recipeId === 'rhythm') {
       // 2. HASHBROWNS: Dos tortitas ovaladas doradas y crujientes apiladas
       const hbMat = new THREE.MeshStandardMaterial({ color: 0xea580c, roughness: 0.9, flatShading: true });
       for (let i = 0; i < 2; i++) {
