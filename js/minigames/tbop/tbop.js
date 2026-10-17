@@ -1,4 +1,4 @@
-// js/minigames/tbop.js
+// js/minigames/tbop/tbop.js
 
 export class TbopAudio {
   constructor(mainBgm = null) {
@@ -6,7 +6,7 @@ export class TbopAudio {
     this.wasMainBgmPlaying = false;
     this.maxVolume = 0.35;
 
-    this.bgMusic = new Audio('assets/audio/tbop/musica_tbop.mp3');
+    this.bgMusic = new Audio('./assets/audio/tbop/musica_tbop.mp3');
     this.bgMusic.loop = true;
     this.bgMusic.volume = 0;
 
@@ -188,9 +188,6 @@ const WALL_THICKNESS = 56;
 let isGameRunning = false;
 let animId = null;
 let canvas, ctx;
-let videoEl, fileInputEl;
-let webcamActive = false;
-let customBossPhoto = null;
 let onWinCallback = null;
 
 let game = {
@@ -745,9 +742,12 @@ function triggerVictory() {
 function drawGame() {
   if (!isGameRunning || !canvas) return;
 
-  if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
+  // Forzamos a que el canvas tome siempre el tamaño real de la ventana completa
+  const targetW = canvas.clientWidth || window.innerWidth;
+  const targetH = canvas.clientHeight || window.innerHeight;
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
   }
 
   ctx.fillStyle = '#120d0a';
@@ -917,35 +917,29 @@ function drawBoss(boss) {
   ctx.save();
   ctx.translate(boss.x, boss.y);
 
+  // Avatar fijo del Profesor Rabí (sin cámara)
   ctx.save();
   ctx.beginPath();
   ctx.ellipse(0, -4, 52, 60, 0, 0, Math.PI * 2);
   ctx.clip();
 
-  if (webcamActive && videoEl && videoEl.readyState >= 2) {
-    ctx.save();
-    ctx.scale(-1, 1);
-    ctx.drawImage(videoEl, -65, -70, 130, 140);
-    ctx.restore();
-  } else if (customBossPhoto) {
-    ctx.drawImage(customBossPhoto, -65, -70, 130, 140);
-  } else {
-    ctx.fillStyle = '#fdba74';
-    ctx.fillRect(-65, -70, 130, 140);
-    ctx.fillStyle = '#271c19';
-    ctx.beginPath();
-    ctx.arc(0, -40, 50, Math.PI, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.fillRect(-20, -10, 8, 8);
-    ctx.fillRect(12, -10, 8, 8);
-    ctx.fillStyle = '#7f1d1d';
-    ctx.fillRect(-15, 20, 30, 10);
-  }
+  ctx.fillStyle = '#fdba74';
+  ctx.fillRect(-65, -70, 130, 140);
+  ctx.fillStyle = '#271c19';
+  ctx.beginPath();
+  ctx.arc(0, -40, 50, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.fillRect(-20, -10, 8, 8);
+  ctx.fillRect(12, -10, 8, 8);
+  ctx.fillStyle = '#7f1d1d';
+  ctx.fillRect(-15, 20, 30, 10);
   ctx.restore();
 
   ctx.strokeStyle = '#7c2d12';
   ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(0, -4, 52, 60, 0, 0, Math.PI * 2);
   ctx.stroke();
 
   ctx.fillStyle = '#fff';
@@ -1118,12 +1112,68 @@ export function startPapaGame(container, onWin = null, mainBgm = null) {
   tbopAudio = new TbopAudio(mainBgm);
 
   container.innerHTML = `
-    <div id="papa-root">
-      <video id="papa-video" autoplay playsinline muted class="fixed top-0 left-0 w-1 h-1 opacity-0 pointer-events-none -z-10"></video>
-      <input type="file" id="papa-file" accept="image/*" capture="user" class="hidden">
+    <style>
+      #papa-root {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background-color: #120d0a !important;
+        overflow: hidden !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+        touch-action: none !important;
+        font-family: 'Inter', sans-serif !important;
+        text-shadow: none !important;
+        z-index: 10;
+      }
+      #papa-root * {
+        text-shadow: none !important;
+        box-sizing: border-box;
+      }
+      #papa-canvas {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: block !important;
+      }
+      #papa-root .font-pixel {
+        font-family: 'VT323', monospace !important;
+        letter-spacing: 0.05em;
+      }
+      #papa-root .isaac-panel {
+        background: rgba(20, 14, 10, 0.92) !important;
+        border: 2px solid #5c4033 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.75) !important;
+        border-radius: 8px !important;
+      }
+      #papa-root .action-btn {
+        background: radial-gradient(circle at 30% 30%, #f59e0b, #b45309) !important;
+        border: 2px solid #fde68a !important;
+        box-shadow: 0 4px 0 #78350f, 0 6px 12px rgba(0,0,0,0.6) !important;
+        transition: transform 0.08s;
+      }
+      #papa-root .action-btn:active {
+        transform: translateY(3px) scale(0.96);
+        box-shadow: 0 1px 0 #78350f !important;
+      }
+      @keyframes boss-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      #papa-root .boss-alert-box {
+        animation: boss-pulse 0.8s infinite ease-in-out;
+      }
+    </style>
 
-      <div class="absolute top-2 left-2 right-2 z-20 flex justify-between items-start pointer-events-none gap-2">
-        <div class="isaac-panel px-2.5 py-1.5 pointer-events-auto flex flex-col gap-1">
+    <div id="papa-root">
+      <!-- Canvas de juego a pantalla completa al fondo -->
+      <canvas id="papa-canvas"></canvas>
+
+      <!-- HUD Superior: el lado izquierdo baja un poco (mt-11) para no chocar con el botón [ ◄ HUB ] -->
+      <div class="absolute top-2 left-3 right-3 z-20 flex justify-between items-start pointer-events-none gap-2">
+        <div class="isaac-panel px-3 py-1.5 mt-11 pointer-events-auto flex flex-col gap-1">
           <span id="papa-floor-title" class="font-pixel text-yellow-400 text-xs sm:text-sm leading-none">PISO 1: LA DESPENSA</span>
           <div id="papa-hearts" class="text-sm sm:text-base leading-none">❤️❤️❤️</div>
           <div class="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold text-amber-200/90">
@@ -1133,8 +1183,9 @@ export function startPapaGame(container, onWin = null, mainBgm = null) {
           </div>
         </div>
 
+        <!-- Minimapa y botones de sonido/reinicio arriba a la derecha -->
         <div class="flex flex-col items-end gap-1.5 pointer-events-auto">
-          <div class="isaac-panel px-2 py-1.5 flex items-center gap-2">
+          <div class="isaac-panel px-2.5 py-1.5 flex items-center gap-2">
             <div class="flex flex-col items-end mr-1">
               <span class="text-[9px] font-bold uppercase tracking-wider text-amber-300/80 leading-none">Mapa</span>
               <span id="papa-room-indicator" class="text-[11px] font-extrabold text-white leading-tight">Sala 1 / 5</span>
@@ -1143,20 +1194,18 @@ export function startPapaGame(container, onWin = null, mainBgm = null) {
           </div>
 
           <div class="flex gap-1.5">
-            <button id="papa-btn-cam" class="isaac-panel px-2 py-1 text-[11px] text-amber-300 hover:bg-amber-950/60 font-bold active:scale-95 transition flex items-center gap-1" title="Usar tu cámara o foto para el Jefe">
-              <span>📷</span> <span id="papa-cam-label" class="hidden sm:inline">Modo Real</span>
-            </button>
-            <button id="papa-btn-sound" class="isaac-panel px-2 py-1 text-[11px] text-amber-200 hover:bg-amber-950/60 font-bold active:scale-95 transition" title="Silenciar música y efectos">
+            <button id="papa-btn-sound" class="isaac-panel px-2.5 py-1 text-xs text-amber-200 hover:bg-amber-950/60 font-bold active:scale-95 transition" title="Silenciar música y efectos">
               🔊
             </button>
-            <button id="papa-btn-restart" class="isaac-panel px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-950/60 font-bold active:scale-95 transition" title="Reiniciar partida">
+            <button id="papa-btn-restart" class="isaac-panel px-2.5 py-1 text-xs text-rose-300 hover:bg-rose-950/60 font-bold active:scale-95 transition" title="Reiniciar partida">
               🔄
             </button>
           </div>
         </div>
       </div>
 
-      <div id="papa-boss-hud" class="hidden absolute top-20 left-1/2 -translate-x-1/2 z-20 w-4/5 max-w-xs pointer-events-none text-center">
+      <!-- Barra de vida del Jefe -->
+      <div id="papa-boss-hud" class="hidden absolute top-16 left-1/2 -translate-x-1/2 z-20 w-4/5 max-w-xs pointer-events-none text-center">
         <div class="boss-alert-box font-pixel text-rose-300 text-xs bg-red-950/90 border border-red-500 rounded px-2 py-0.5 mb-1">
           ⚠️ ¡EL PROFESOR RABÍ INTENTA PEGARTE! ⚠️
         </div>
@@ -1165,37 +1214,38 @@ export function startPapaGame(container, onWin = null, mainBgm = null) {
         </div>
       </div>
 
+      <!-- Notificaciones flotantes (Toasts) -->
       <div id="papa-toast" class="opacity-0 transition-opacity duration-300 pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 z-20 bg-black/90 border border-amber-500 px-4 py-2 rounded text-center">
         <div id="papa-toast-title" class="font-pixel text-yellow-400 text-xs"></div>
         <div id="papa-toast-sub" class="text-white text-xs"></div>
       </div>
 
-      <canvas id="papa-canvas" class="w-full h-full block"></canvas>
-
-      <div class="absolute bottom-3 left-3 right-3 z-20 flex justify-between items-end pointer-events-none">
+      <!-- Controles inferiores: Joystick, Guía y Botón RODAR -->
+      <div class="absolute bottom-4 left-4 right-4 z-20 flex justify-between items-end pointer-events-none">
         <div id="papa-joy-zone" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-amber-950/40 border-2 border-amber-500/50 relative pointer-events-auto flex items-center justify-center">
           <div class="text-[9px] text-amber-200/40 font-bold uppercase tracking-widest pointer-events-none">MOVER</div>
           <div id="papa-joy-knob" class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-b from-amber-400 to-amber-700 border border-yellow-200 absolute flex items-center justify-center text-lg">🥔</div>
         </div>
 
-        <div class="hidden sm:flex flex-col items-center bg-black/65 px-3 py-1 rounded-lg border border-amber-900/60 text-[10px] text-amber-200/90 text-center">
+        <div class="hidden sm:flex flex-col items-center bg-black/75 px-3 py-1.5 rounded-lg border border-amber-900/60 text-[11px] text-amber-200/90 text-center">
           <span><b>Auto-Disparo Activo</b> (Apunta al enemigo más cercano)</span>
           <span>PC: <b>WASD / Flechas</b> mover • <b>Espacio</b> Rodar</span>
         </div>
 
-        <button id="papa-btn-dash" class="action-btn w-20 h-20 rounded-full flex flex-col items-center justify-center pointer-events-auto">
+        <button id="papa-btn-dash" class="action-btn w-20 h-20 rounded-full flex flex-col items-center justify-center pointer-events-auto cursor-pointer">
           <span class="text-xl leading-none">💨</span>
           <span class="font-pixel text-xs text-white leading-none mt-1">RODAR</span>
           <span class="text-[8px] text-amber-200">ESQUIVAR</span>
         </button>
       </div>
 
+      <!-- Modal Victoria / Derrota -->
       <div id="papa-end-modal" class="hidden absolute inset-0 z-40 bg-black/85 flex items-center justify-center p-4">
         <div class="isaac-panel p-5 max-w-sm w-full text-center border-2 border-amber-500">
           <div id="papa-end-icon" class="text-5xl mb-2">🥣</div>
           <h2 id="papa-end-title" class="font-pixel text-yellow-400 text-lg mb-2"></h2>
           <p id="papa-end-desc" class="text-sm text-gray-200 mb-4"></p>
-          <button id="papa-btn-retry" class="action-btn w-full py-2 rounded font-pixel text-xs text-white">
+          <button id="papa-btn-retry" class="action-btn w-full py-2 rounded font-pixel text-xs text-white cursor-pointer">
             🥔 REINTENTAR
           </button>
         </div>
@@ -1206,55 +1256,12 @@ export function startPapaGame(container, onWin = null, mainBgm = null) {
   const root = container.querySelector('#papa-root');
   canvas = root.querySelector('#papa-canvas');
   ctx = canvas.getContext('2d');
-  videoEl = root.querySelector('#papa-video');
-  fileInputEl = root.querySelector('#papa-file');
 
   root.querySelector('#papa-btn-retry').addEventListener('click', initGame);
   root.querySelector('#papa-btn-restart').addEventListener('click', initGame);
   root.querySelector('#papa-btn-sound').addEventListener('click', (e) => {
     const active = tbopAudio.toggleMute();
     e.currentTarget.textContent = active ? '🔊' : '🔇';
-  });
-
-  const btnCam = root.querySelector('#papa-btn-cam');
-  const camLabel = root.querySelector('#papa-cam-label');
-  btnCam.addEventListener('click', async () => {
-    if (webcamActive || customBossPhoto) {
-      if (videoEl && videoEl.srcObject) {
-        videoEl.srcObject.getTracks().forEach(t => t.stop());
-        videoEl.srcObject = null;
-      }
-      webcamActive = false;
-      customBossPhoto = null;
-      camLabel.textContent = 'Modo Real';
-      showToast('📷 Modo Real', 'Desactivado');
-      return;
-    }
-
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 320, height: 320 }, audio: false });
-        videoEl.srcObject = stream;
-        await videoEl.play();
-        webcamActive = true;
-        camLabel.textContent = 'Cámara Activa';
-        showToast('📷 CÁMARA ACTIVA', '¡Tu cara es el Jefe Final!');
-        return;
-      } catch (e) {}
-    }
-    fileInputEl.click();
-  });
-
-  fileInputEl.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const img = new Image();
-    img.onload = () => {
-      customBossPhoto = img;
-      camLabel.textContent = 'Foto Activa';
-      showToast('📷 FOTO CARGADA', '¡Tu foto es el Jefe Final!');
-    };
-    img.src = URL.createObjectURL(file);
   });
 
   setupInputs(root);
@@ -1274,12 +1281,6 @@ export function stopPapaGame() {
     tbopAudio.stopAndRestore();
   }
 
-  if (videoEl && videoEl.srcObject) {
-    videoEl.srcObject.getTracks().forEach(t => t.stop());
-    videoEl.srcObject = null;
-  }
-  webcamActive = false;
-  customBossPhoto = null;
   if (animId) {
     cancelAnimationFrame(animId);
     animId = null;

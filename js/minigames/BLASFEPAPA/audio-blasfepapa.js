@@ -3,12 +3,12 @@ export class BlasfepapaAudio {
     this.mainBgm = mainBgm;
     this.wasMainBgmPlaying = false;
     this.currentZone = null;
-    this.maxVolume = 0.4;
+    this.maxVolume = 0.1;
 
 
     this.tracks = {
-      1: new Audio('./assets/audio_blasfepapa/zona1.mp3'),
-      2: new Audio('./assets/audio_blasfepapa/zona2.mp3')
+      1: new Audio('./assets/audio/blasfepapa/zona1.mp3'),
+      2: new Audio('./assets/audio/blasfepapa/zona2.mp3')
     };
 
     // Configurar ambas pistas en bucle continuo (loop)

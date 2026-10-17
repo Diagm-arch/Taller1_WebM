@@ -1,7 +1,8 @@
 import { ThreeHub } from './three-hub.js?v=9';
 import { AudioManager } from './audio-manager.js?v=9';
 import { FF7Minigame } from './minigames/ff7/game-ff7.js?v=9';
-import { BlasphemousPotatoGame } from './minijuegos/BLASFEPAPA/game-blasfepapa.js?v=9';
+import { BlasphemousPotatoGame } from './minigames/BLASFEPAPA/game-blasfepapa.js?v=9';
+import { startPapaGame, stopPapaGame } from './minigames/tbop/tbop.js?v=9';
 
 // 1. LISTA DE CANCIONES (Guarda tus archivos .mp3 en ./assets/audio/)
 const dnbPlaylist = [
@@ -19,16 +20,9 @@ const btnAction = document.getElementById('btn-action');
 const btnBgmToggle = document.getElementById('btn-bgm-toggle');
 const btnBgmNext = document.getElementById('btn-bgm-next');
 
-//Referencias del Modal de Minijuegos y Transiciones
-const minigameModal = document.getElementById('minigame-modal');
-const minigameTitle = document.getElementById('minigame-title');
-const minigameStage = document.getElementById('minigame-stage');
-const btnExitGame = document.getElementById('btn-exit-game');
-const transitionOverlay = document.getElementById('transition-overlay');
-const unlockCounter = document.getElementById('unlock-counter');
-
-// Referencias del Modal de Minijuegos y Transiciones
+// Referencias del Modal de Minijuegos y Transiciones (Sin duplicados)
 const modal = document.getElementById('minigame-modal');
+const minigameModal = modal; // Alias por compatibilidad
 const minigameTitle = document.getElementById('minigame-title');
 const minigameStage = document.getElementById('minigame-stage');
 const btnExitGame = document.getElementById('btn-exit-game');
@@ -39,7 +33,6 @@ const uiLayer = document.getElementById('ui-layer');
 
 let activeNodeIndex = -1;
 let activeRecipe = null;
-let currentGameInstance = null;
 let currentGameInstance = null;
 let isTransitioning = false;
 
@@ -82,23 +75,6 @@ function handleNodeSelection(recipe, index) {
     btnAction.classList.remove('hidden');
   }
 }
-// Actualiza el contador de archivos desbloqueados (0 / 4 -> 4 / 4)
-function updateUnlockCounterUI() {
-  const unlockedTotal = hub.recipesData.filter(r => r.unlocked).length;
-  unlockCounter.textContent = `${unlockedTotal} / ${hub.recipesData.length}`;
-}
-
-// Cierra el modal y limpia el minijuego en ejecución
-function closeMinigameModal() {
-  if (currentGameInstance && typeof currentGameInstance.destroy === 'function') {
-    currentGameInstance.destroy();
-  }
-  currentGameInstance = null;
-  minigameStage.innerHTML = '';
-  minigameModal.classList.add('hidden');
-}
-
-// Punto de entrada para lanzar la transición y el minijuego de cada integrante
 
 // Actualiza el contador de archivos desbloqueados (0 / 4 -> 4 / 4)
 function updateUnlockCounterUI() {
@@ -114,7 +90,11 @@ function closeMinigameModal() {
   currentGameInstance = null;
   minigameStage.innerHTML = '';
   modal.classList.add('hidden');
-  bgm.resume(); // retoma la música del hub (solo si el usuario la tenía activada)
+
+  // Si el AudioManager nuevo tiene resume(), lo usa (TBOP y Blasfepapa igual manejan su propio restore)
+  if (typeof bgm.resume === 'function') {
+    bgm.resume();
+  }
 }
 
 // =========================================================================
@@ -126,20 +106,19 @@ function playFF7BattleTransition(onComplete) {
   if (isTransitioning) return;
   isTransitioning = true;
 
-  // SFX de encuentro aleatorio al iniciar el remolino
   const enterSfx = new Audio('./assets/audio/ff7/sfx/batttle-enter.mp3');
   enterSfx.volume = 0.75;
   enterSfx.play().catch(() => {});
 
-  webglCanvas.classList.add('ff7-warp-active');
-  uiLayer.classList.add('ff7-warp-active');
+  if (webglCanvas) webglCanvas.classList.add('ff7-warp-active');
+  if (uiLayer) uiLayer.classList.add('ff7-warp-active');
   transitionOverlay.classList.add('ff7-overlay-active');
 
   setTimeout(() => {
     onComplete();
 
-    webglCanvas.classList.remove('ff7-warp-active');
-    uiLayer.classList.remove('ff7-warp-active');
+    if (webglCanvas) webglCanvas.classList.remove('ff7-warp-active');
+    if (uiLayer) uiLayer.classList.remove('ff7-warp-active');
 
     transitionOverlay.style.transition = 'opacity 0.35s ease';
     transitionOverlay.style.opacity = '0';
@@ -176,7 +155,6 @@ function launchMinigame() {
   const recipe = activeRecipe;
   if (!recipe) return;
 
-  // Si por seguridad había una instancia previa, la destruimos
   if (currentGameInstance && typeof currentGameInstance.destroy === 'function') {
     currentGameInstance.destroy();
   }
@@ -190,33 +168,39 @@ function launchMinigame() {
 
   // Callback cuando el jugador supera el minijuego
   const onWinMinigame = () => {
-    currentGameInstance = null; // el juego ya se destruyó solo al ganar
     hub.unlockNode(nodeIndex);
     updateUnlockCounterUI();
     closeMinigameModal();
   };
 
   if (recipe.id === 'ff7') {
-    // NODO #01
+    // NODO #01 - FF7
     currentGameInstance = new FF7Minigame(
       minigameStage,
-      onWinMinigame,
-      () => { // Huir
+      () => {
+        currentGameInstance = null;
+        onWinMinigame();
+      },
+      () => {
         currentGameInstance = null;
         closeMinigameModal();
       }
     );
 
   } else if (recipe.id === 'survivor') {
-    // NODO #02
+    // NODO #02 - Survivor
     minigameStage.innerHTML = '<p class="text-yellow-300 text-xl text-center px-4">Minijuego #02 (Survivor) pendiente de integración...</p>';
 
   } else if (recipe.id === 'masher') {
-    // NODO #03
-    minigameStage.innerHTML = '<p class="text-yellow-300 text-xl text-center px-4">Minijuego #03 (Masher) pendiente de integración...</p>';
+    // NODO #03 - THE BINDING OF PAPA (TBOP)
+    if (minigameTitle) minigameTitle.textContent = 'DESAFÍO #03 — The Binding Of Papa';
+    startPapaGame(minigameStage, onWinMinigame, bgm);
+    currentGameInstance = {
+      destroy: () => stopPapaGame()
+    };
 
   } else if (recipe.id === 'jacket') {
-    // NODO #04 (Pasamos bgm para que BlasfepapaAudio cancele la música del menú)
+    // NODO #04 - BLASFEPAPA
     if (minigameTitle) minigameTitle.textContent = 'DESAFÍO #04 — PENITENCIA DEL TUBÉRCULO';
     currentGameInstance = new BlasphemousPotatoGame(minigameStage, onWinMinigame, bgm);
   }
@@ -224,58 +208,16 @@ function launchMinigame() {
 
 // Botón "DESBLOQUEAR JUEGO" / "JUGAR DE NUEVO"
 btnAction.addEventListener('click', () => {
-  if (!activeRecipe) return;
-
-  // 1. Disparar animación de encuentro PS1 (Flash blanco/negro)
-  transitionOverlay.classList.remove('trigger-encounter');
-  void transitionOverlay.offsetWidth; // Forzar reflow para reiniciar la animación
-  transitionOverlay.classList.add('trigger-encounter');
-
-  // 2. Abrir el modal y cargar el minijuego correspondiente al nodo seleccionado
-  setTimeout(() => {
-    minigameTitle.textContent = `DESAFÍO #0${activeNodeIndex + 1} — ${activeRecipe.author.toUpperCase()}`;
-    minigameModal.classList.remove('hidden');
-
-    if (currentGameInstance && typeof currentGameInstance.destroy === 'function') {
-      currentGameInstance.destroy();
-      currentGameInstance = null;
-    }
-
-    // Callback que se ejecuta cuando el jugador supera el minijuego
-    const onWinMinigame = () => {
-      hub.unlockNode(activeNodeIndex);
-      updateUnlockCounterUI();
-      closeMinigameModal();
-    };
-
-    if (activeRecipe.id === 'ff7') {
-      // NODO #01 - Integrante 1
-      minigameStage.innerHTML = '<p class="text-yellow-300 text-xl text-center px-4">Minijuego #01 (FF7) pendiente de integración...</p>';
-
-    } else if (activeRecipe.id === 'survivor') {
-      // NODO #02 - Integrante 2
-      minigameStage.innerHTML = '<p class="text-yellow-300 text-xl text-center px-4">Minijuego #02 (Survivor) pendiente de integración...</p>';
-
-    } else if (activeRecipe.id === 'masher') {
-      // NODO #03 - Integrante 3
-      minigameStage.innerHTML = '<p class="text-yellow-300 text-xl text-center px-4">Minijuego #03 (Masher) pendiente de integración...</p>';
-
-    } else if (activeRecipe.id === 'jacket') {
-      // NODO #04 - Integrante 4 (Pasamos bgm para que BlasfepapaAudio cancele la música del menú)
-      minigameTitle.textContent = 'DESAFÍO #04 — PENITENCIA DEL TUBÉRCULO';
-      currentGameInstance = new BlasphemousPotatoGame(minigameStage, onWinMinigame, bgm);
-    }
-  }, 550);
-});
-
-// Botón [ HUIR ] para salir del modal del minijuego
-btnExitGame.addEventListener('click', () => {
-  closeMinigameModal();
   btnAction.blur(); // Quita el foco para que Enter no lo reactive durante la pelea
   if (!activeRecipe || isTransitioning || !modal.classList.contains('hidden')) return;
 
-  // Silencia (y cancela cualquier carga pendiente de) la música del hub, aunque aún no haya empezado a sonar
-  bgm.suspend();
+  // Si es FF7 o Survivor y existe bgm.suspend(), lo usamos.
+  // Para 'masher' (TBOP) y 'jacket' (Blasfepapa), sus propias clases de audio pausan y restauran bgm.
+  if (activeRecipe.id !== 'masher' && activeRecipe.id !== 'jacket') {
+    if (typeof bgm.suspend === 'function') {
+      bgm.suspend();
+    }
+  }
 
   if (activeRecipe.id === 'ff7') {
     playFF7BattleTransition(launchMinigame);
@@ -284,18 +226,17 @@ btnExitGame.addEventListener('click', () => {
   }
 });
 
-// Botón [ HUIR ]
+// Botón [ HUIR ] para salir del modal del minijuego
 btnExitGame.addEventListener('click', () => {
   closeMinigameModal();
 });
 
-// Controles de la Radio Atmospheric DnB
 // =========================================================================
 // RADIO ATMOSPHERIC DNB + PANTALLA DE ENTRADA
-// La música se inicia dentro del clic de "TOCA PARA ENTRAR" (gesto garantizado en todos los navegadores)
 // =========================================================================
 const updateBgmUI = (track, isPlaying) => {
-  btnBgmToggle.textContent = isPlaying ? `[ ♫ ${track.title} ]` : '[ ▶ BGM: OFF ]';
+  if (!btnBgmToggle) return;
+  btnBgmToggle.textContent = (isPlaying && track) ? `[ ♫ ${track.title} ]` : '[ ▶ BGM: OFF ]';
 };
 bgm.onTrackChange = updateBgmUI;
 
@@ -303,54 +244,60 @@ const bootScreen = document.getElementById('boot-screen');
 const bootBar = document.getElementById('boot-bar');
 const bootStatus = document.getElementById('boot-status');
 const btnEnter = document.getElementById('btn-enter');
-let hasEntered = false;
-let bootAudioState = 'loading';
+let hasEntered = !bootScreen; // Si no existe boot-screen en el HTML, permite usar el hub de inmediato
+let bootAudioState = 'ready';
 
-btnEnter.disabled = true;
+if (bootScreen && btnEnter) {
+  btnEnter.disabled = true;
 
-bgm.preload({
-  timeout: 10000, // si la conexión es lenta no dejamos al usuario atrapado: la música seguirá cargando
-  onProgress: (pct) => { bootBar.style.width = `${pct}%`; }
-}).then((state) => {
-  bootAudioState = state;
-  const messages = {
-    ready: 'MÚSICA LISTA',
-    slow: 'CONEXIÓN LENTA: LA MÚSICA CARGARÁ EN SEGUNDO PLANO',
-    error: 'NO SE PUDO CARGAR LA MÚSICA'
-  };
-  bootStatus.textContent = messages[state];
-  if (state === 'ready') bootBar.style.width = '100%';
-  btnEnter.disabled = false;
-  btnEnter.textContent = '▶ TOCA PARA ENTRAR';
-  btnEnter.focus();
-});
+  if (typeof bgm.preload === 'function') {
+    bgm.preload({
+      timeout: 10000,
+      onProgress: (pct) => { if (bootBar) bootBar.style.width = `${pct}%`; }
+    }).then((state) => {
+      bootAudioState = state;
+      const messages = {
+        ready: 'MÚSICA LISTA',
+        slow: 'CONEXIÓN LENTA: LA MÚSICA CARGARÁ EN SEGUNDO PLANO',
+        error: 'NO SE PUDO CARGAR LA MÚSICA'
+      };
+      if (bootStatus) bootStatus.textContent = messages[state] || 'LISTO';
+      if (state === 'ready' && bootBar) bootBar.style.width = '100%';
+      btnEnter.disabled = false;
+      btnEnter.textContent = '▶ TOCA PARA ENTRAR';
+      btnEnter.focus();
+    });
+  } else {
+    // Respaldo si tienes el audio-manager.js anterior (sin método preload)
+    if (bootBar) bootBar.style.width = '100%';
+    if (bootStatus) bootStatus.textContent = 'MÚSICA LISTA';
+    btnEnter.disabled = false;
+    btnEnter.textContent = '▶ TOCA PARA ENTRAR';
+  }
 
-// 2. Desbloqueo automático al primer clic, toque o scroll
-const unlockAudioOnFirstInteraction = () => {
-  if (!bgm.isPlaying) {
+  btnEnter.addEventListener('click', () => {
+    if (hasEntered) return;
+    hasEntered = true;
+
+    if (bootAudioState !== 'error') {
+      if (typeof bgm.play === 'function') {
+        bgm.play(updateBgmUI);
+      } else {
+        bgm.togglePlay(updateBgmUI);
+      }
+    }
+
+    bootScreen.classList.add('opacity-0', 'pointer-events-none');
+    setTimeout(() => bootScreen.remove(), 600);
+  });
+} else {
+  // Si tu index.html no tiene pantalla de carga (boot-screen), usa el arranque clásico
+  window.addEventListener('DOMContentLoaded', () => {
     bgm.togglePlay(updateBgmUI);
-  }
-  if (bgm.isPlaying) {
-    window.removeEventListener('pointerdown', unlockAudioOnFirstInteraction);
-    window.removeEventListener('wheel', unlockAudioOnFirstInteraction);
-    window.removeEventListener('touchstart', unlockAudioOnFirstInteraction);
-    window.removeEventListener('keydown', unlockAudioOnFirstInteraction);
-  }
-};
-
-btnEnter.addEventListener('click', () => {
-  if (hasEntered) return;
-  hasEntered = true;
-
-  // Debe ejecutarse DENTRO del gesto del usuario para que Firefox/Safari/Chrome permitan el audio
-  if (bootAudioState !== 'error') bgm.play(updateBgmUI);
-
-  bootScreen.classList.add('opacity-0', 'pointer-events-none');
-  setTimeout(() => bootScreen.remove(), 600);
-});
+  });
+}
 
 btnBgmToggle.addEventListener('click', (e) => {
-  e.stopPropagation();
   e.stopPropagation();
   const playing = bgm.togglePlay(updateBgmUI);
   if (!playing) btnBgmToggle.textContent = '[ ▶ BGM: OFF ]';
@@ -361,15 +308,12 @@ btnBgmNext.addEventListener('click', (e) => {
   bgm.nextTrack();
 });
 
-// Eventos de Scroll (PC) y Swipe (Móvil) — Se ignoran mientras el modal de juego está abierto
 // =========================================================================
 // EVENTOS DE SCROLL (PC) Y SWIPE (MÓVIL)
-// Se ignoran mientras el modal está abierto o hay una transición
 // =========================================================================
 let lastScrollTime = 0;
 window.addEventListener('wheel', (e) => {
-  if (!hasEntered || !minigameModal.classList.contains('hidden')) return;
-  if (!modal.classList.contains('hidden') || isTransitioning) return;
+  if (!hasEntered || !modal.classList.contains('hidden') || isTransitioning) return;
   const now = Date.now();
   if (now - lastScrollTime < 350) return;
   lastScrollTime = now;
@@ -378,8 +322,7 @@ window.addEventListener('wheel', (e) => {
 
 let touchStartX = 0;
 window.addEventListener('touchstart', (e) => {
-  if (!hasEntered || !minigameModal.classList.contains('hidden')) return;
-  if (!modal.classList.contains('hidden')) return;
+  if (!hasEntered || !modal.classList.contains('hidden') || isTransitioning) return;
   touchStartX = e.touches[0].clientX;
 }, { passive: true });
 

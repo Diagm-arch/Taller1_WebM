@@ -11,7 +11,7 @@ export class ThreeHub {
     this.recipesData = [
       {
         id: 'ff7',
-        author: 'Integrante 1 (Tú)',
+        author: 'Integrante 1',
         lockedName: '??? [ARCHIVO ENCRIPTADO #01]',
         unlockedName: 'PAPAS FRITAS CRUJIENTES',
         lockedDesc: 'Se detecta calor extremo. Haz CLIC en el signo "???" 3D o en el botón para iniciar la batalla RPG.',
