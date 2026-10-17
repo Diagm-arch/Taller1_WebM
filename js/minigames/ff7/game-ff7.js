@@ -36,97 +36,101 @@ export class FF7Minigame {
 
   // Cursor clásico de FF7 (Mano enguantada blanca apuntando a la derecha)
   getGloveCursorHTML() {
-    return `<span class="inline-block w-5 text-white drop-shadow-[2px_2px_0_#000] select-none mr-1">☞</span>`;
+    return `<span class="inline-block w-[2.5vh] text-[2.8vh] text-white drop-shadow-[2px_2px_0_#000] select-none mr-[0.4vw]">☞</span>`;
   }
 
   renderLayout() {
+    const checkTouchOrSmallViewport = () =>
+      ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || window.innerWidth < 950 || window.innerHeight < 520;
+
+    this.isMobile = checkTouchOrSmallViewport();
+
     this.container.innerHTML = `
-      <div class="w-full h-full flex flex-col bg-black select-none overflow-hidden relative">
+      <div class="fixed inset-0 w-full h-full flex flex-col bg-black p-[0.6vh] select-none overflow-hidden">
         
-        <!-- BANNER SUPERIOR DE MENSAJES DE BATALLA -->
-        <div id="ff7-top-banner" class="hidden absolute top-2 left-1/2 -translate-x-1/2 z-30 ff7-hud-box px-3 sm:px-6 py-1 text-sm sm:text-2xl md:text-3xl text-white text-center min-w-[200px] sm:min-w-[280px]">
+        <!-- BANNER SUPERIOR PROPORCIONAL -->
+        <div id="ff7-top-banner" class="hidden absolute top-[1.5vh] left-1/2 -translate-x-1/2 z-30 ff7-hud-box px-[2vw] py-[0.6vh] text-[2.8vh] text-white text-center min-w-[30vw]">
         </div>
 
-        <!-- PARTE SUPERIOR (64% en móvil, 68% en PC): Escena 3D + Controles PS1 Táctiles -->
-        <div class="relative w-full h-[64%] sm:h-[68%] bg-black overflow-hidden">
+        <!-- PARTE SUPERIOR (72% de la altura siempre): Escena 3D + Controles PS1 -->
+        <div class="relative w-full h-[72%] bg-black overflow-hidden">
           <canvas id="ff7-battle-canvas" class="w-full h-full block" style="image-rendering: pixelated;"></canvas>
           
-          <!-- Capa para números de daño -->
           <div id="ff7-damage-layer" class="pointer-events-none absolute inset-0 z-20 overflow-hidden"></div>
 
-          <!-- Cursor Sprite 2D sobre los modelos 3D -->
           <div id="ff7-3d-target-cursor" class="hidden pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 transition-all duration-75">
-            <span class="inline-block text-3xl sm:text-5xl text-white drop-shadow-[3px_3px_0_#000] rotate-90 animate-bounce">☞</span>
+            <span class="inline-block text-[5vh] text-white drop-shadow-[2px_2px_0_#000] rotate-90 animate-bounce">☞</span>
           </div>
 
-          <!-- Botón de test arriba a la derecha -->
-          <div class="absolute top-1.5 right-1.5 flex items-center gap-1.5 z-20">
-            <span class="ff7-hud-box px-2 py-0.5 text-xs md:text-base text-cyan-200 hidden lg:inline">
-              [↑↓] Mover | [Enter] OK | [Backspace] Atrás
-            </span>
-            <button id="ff7-btn-win-test" class="ff7-hud-box px-2 py-0.5 text-xs sm:text-base text-green-300 hover:text-white">
+          <div class="absolute top-[1vh] right-[1vw] flex items-center gap-[1vw] z-40">
+            <button id="ff7-btn-toggle-pad" class="ff7-hud-box px-[1vw] py-[0.3vh] text-[2.1vh] text-cyan-300 hover:text-white">
+              [ 🎮 PAD ]
+            </button>
+            <button id="ff7-btn-win-test" class="ff7-hud-box px-[1vw] py-[0.3vh] text-[2.1vh] text-green-300 hover:text-white">
               [ ★ GANAR TEST ]
             </button>
           </div>
 
-          <!-- ===============================================================
-               CONTROLES TÁCTILES TIPO PS1 (Cruceta a la izq, X y O a la der)
-               Solo aparecen en móviles/tablets gracias a .ps1-touch-pad
-               =============================================================== -->
-          <!-- Cruceta (D-PAD) Izquierda -->
-          <div class="ps1-touch-pad absolute bottom-2 left-2 z-40 flex-col items-center gap-0.5 opacity-85">
-            <button id="ps1-btn-up" class="ps1-dpad-btn w-9 h-8 sm:w-11 sm:h-10 flex items-center justify-center text-base font-bold rounded-t">▲</button>
-            <div class="flex gap-7 sm:gap-9">
-              <button id="ps1-btn-left" class="ps1-dpad-btn w-9 h-8 sm:w-11 sm:h-10 flex items-center justify-center text-base font-bold rounded-l">◀</button>
-              <button id="ps1-btn-right" class="ps1-dpad-btn w-9 h-8 sm:w-11 sm:h-10 flex items-center justify-center text-base font-bold rounded-r">▶</button>
+          <!-- CONTROLES PS1: Se muestran automáticamente en móvil o al hacer zoom / achicar ventana -->
+          <div id="ff7-ps1-touch-pad" class="${this.isMobile ? 'flex' : 'hidden'} absolute inset-x-[1.5vw] bottom-[1.5vh] z-40 justify-between items-end pointer-events-none">
+            
+            <!-- CRUCETA (D-PAD) ESCALADA EN VH -->
+            <div class="pointer-events-auto grid grid-cols-3 gap-[0.3vh] w-[18vh] h-[18vh] opacity-75 hover:opacity-100">
+              <div></div>
+              <button data-pad="up" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[2.2vh] flex items-center justify-center rounded-t">▲</button>
+              <div></div>
+              <button data-pad="left" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[2.2vh] flex items-center justify-center rounded-l">◀</button>
+              <div class="bg-zinc-900/70 border border-zinc-700"></div>
+              <button data-pad="right" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[2.2vh] flex items-center justify-center rounded-r">▶</button>
+              <div></div>
+              <button data-pad="down" class="bg-zinc-800/85 active:bg-zinc-600 border border-zinc-400 text-white text-[2.2vh] flex items-center justify-center rounded-b">▼</button>
+              <div></div>
             </div>
-            <button id="ps1-btn-down" class="ps1-dpad-btn w-9 h-8 sm:w-11 sm:h-10 flex items-center justify-center text-base font-bold rounded-b">▼</button>
-          </div>
 
-          <!-- Botones PlayStation (O = Retroceder, X = Aceptar) Derecha -->
-          <div class="ps1-touch-pad absolute bottom-3 right-3 z-40 items-center gap-3 opacity-90">
-            <!-- Botón O (Círculo Rojo: Retroceder) -->
-            <button id="ps1-btn-o" class="ps1-action-btn w-12 h-12 sm:w-14 sm:h-14 flex flex-col items-center justify-center">
-              <span class="text-red-400 text-xl sm:text-2xl font-extrabold leading-none">○</span>
-              <span class="text-[8px] text-gray-300 leading-none mt-0.5">ATRÁS</span>
-            </button>
-            <!-- Botón X (Equis Azul: Aceptar) -->
-            <button id="ps1-btn-x" class="ps1-action-btn w-13 h-13 sm:w-16 sm:h-16 flex flex-col items-center justify-center translate-y-1">
-              <span class="text-blue-400 text-2xl sm:text-3xl font-extrabold leading-none">✕</span>
-              <span class="text-[9px] text-gray-200 leading-none mt-0.5">OK</span>
-            </button>
+            <!-- BOTONES O y X ESCALADOS EN VH -->
+            <div class="pointer-events-auto flex items-center gap-[2vh] pr-[1vw] pb-[0.5vh] opacity-80 hover:opacity-100">
+              <button data-pad="back" class="w-[8.5vh] h-[8.5vh] rounded-full bg-zinc-800/85 active:scale-90 border-2 border-zinc-400 flex flex-col items-center justify-center">
+                <span class="text-red-400 text-[3.2vh] font-bold leading-none">○</span>
+                <span class="text-[1.4vh] text-gray-300 leading-none">ATRÁS</span>
+              </button>
+              <button data-pad="accept" class="w-[10vh] h-[10vh] rounded-full bg-zinc-800/85 active:scale-90 border-2 border-zinc-300 flex flex-col items-center justify-center">
+                <span class="text-blue-400 text-[3.8vh] font-bold leading-none">✕</span>
+                <span class="text-[1.5vh] text-gray-200 leading-none">OK</span>
+              </button>
+            </div>
+
           </div>
         </div>
 
-        <!-- PARTE INFERIOR (36% en móvil, 32% en PC): HUD Original de Final Fantasy VII -->
-        <div class="w-full h-[36%] sm:h-[32%] grid grid-cols-12 bg-black relative">
+        <!-- PARTE INFERIOR (28% de la altura siempre): Escala idéntico en 1080p, 350% zoom o móvil -->
+        <div class="w-full h-[28%] shrink-0 grid grid-cols-12 bg-black relative mt-[0.4vh]">
           
-          <!-- CAJA DE COMANDOS DE FF7 (Adaptada en móvil para no tapar todo) -->
-          <div id="ff7-command-window" class="hidden absolute left-[2%] sm:left-[28%] bottom-0.5 z-30 w-32 sm:w-48 h-[98%] ff7-hud-box px-2 sm:px-3 py-1 flex flex-col justify-between">
+          <!-- CAJA DE COMANDOS: Ancho en % (w-[18%]) para que NUNCA pise los números de HP de la derecha -->
+          <div id="ff7-command-window" class="hidden absolute left-[21%] bottom-0 z-30 w-[19%] min-w-[95px] h-full ff7-hud-box px-[1vw] py-[0.8vh] flex flex-col justify-between">
           </div>
 
-          <!-- SUBMENÚ DESPLEGABLE (Magias / Items / Slots de Tifa) -->
-          <div id="ff7-sub-window" class="hidden absolute left-[34%] sm:left-[48%] bottom-0.5 z-40 w-[64%] sm:w-80 h-[98%] ff7-hud-box px-2 sm:px-3 py-1 flex flex-col justify-between">
+          <!-- SUBMENÚ DESPLEGABLE (Magias / Items / Slots) -->
+          <div id="ff7-sub-window" class="hidden absolute left-[40%] bottom-0 z-40 w-[34%] min-w-[165px] h-full ff7-hud-box px-[1.2vw] py-[0.8vh] flex flex-col justify-between">
           </div>
 
-          <!-- PANEL IZQUIERDO: NAME & BARRIER (4 cols en móvil, 5 en PC) -->
-          <div class="col-span-4 sm:col-span-5 ff7-hud-box px-1.5 sm:px-4 py-0.5 sm:py-1 flex flex-col justify-between">
-            <div class="flex justify-between items-center text-[10px] sm:text-base md:text-xl leading-none ff7-label">
+          <!-- PANEL IZQUIERDO: NAME & BARRIER (4 columnas) -->
+          <div class="col-span-4 ff7-hud-box px-[1.2vw] py-[0.8vh] flex flex-col justify-between overflow-hidden">
+            <div class="flex justify-between items-center text-[2.2vh] leading-none ff7-label">
               <span>NAME</span>
-              <span class="hidden md:inline pr-2">BARRIER</span>
+              <span class="hidden sm:inline pr-[0.5vw]">BARRIER</span>
             </div>
-            <div id="ff7-heroes-names" class="flex-1 flex flex-col justify-around"></div>
+            <div id="ff7-heroes-names" class="flex-1 flex flex-col justify-evenly"></div>
           </div>
 
-          <!-- PANEL DERECHO: HP / MP / LIMIT / TIME (8 cols en móvil, 7 en PC) -->
-          <div class="col-span-8 sm:col-span-7 ff7-hud-box px-1.5 sm:px-4 py-0.5 sm:py-1 flex flex-col justify-between">
-            <div class="grid grid-cols-12 items-center text-[10px] sm:text-base md:text-xl leading-none ff7-label">
-              <span class="col-span-5">HP</span>
-              <span class="col-span-3 sm:col-span-2">MP</span>
-              <span class="col-span-2 hidden md:inline text-center">LIMIT</span>
-              <span class="col-span-4 sm:col-span-3 text-center">TIME</span>
+          <!-- PANEL DERECHO: HP / MP / LIMIT / TIME (8 columnas con margen izquierdo para no chocar con el menú) -->
+          <div class="col-span-8 ff7-hud-box pl-[9%] pr-[1.2vw] py-[0.8vh] flex flex-col justify-between overflow-hidden">
+            <div class="grid grid-cols-12 items-center text-[2.2vh] leading-none ff7-label">
+              <span class="col-span-4">HP</span>
+              <span class="col-span-2">MP</span>
+              <span class="col-span-3 text-center">LIMIT</span>
+              <span class="col-span-3 text-center">TIME</span>
             </div>
-            <div id="ff7-heroes-stats" class="flex-1 flex flex-col justify-around"></div>
+            <div id="ff7-heroes-stats" class="flex-1 flex flex-col justify-evenly"></div>
           </div>
 
         </div>
@@ -136,6 +140,23 @@ export class FF7Minigame {
     document.getElementById('ff7-btn-win-test').addEventListener('click', () => {
       this.finishBattle(true);
     });
+
+    // Botón para mostrar/ocultar el mando PS1 manualmente cuando quieras probarlo en Desktop
+    const padEl = document.getElementById('ff7-ps1-touch-pad');
+    document.getElementById('ff7-btn-toggle-pad').addEventListener('click', () => {
+      padEl.classList.toggle('hidden');
+      padEl.classList.toggle('flex');
+    });
+
+    // Si haces zoom (ej. 350%) o rotas el móvil, aparece el mando automáticamente
+    this.padResizeListener = () => {
+      if (!padEl) return;
+      if (checkTouchOrSmallViewport()) {
+        padEl.classList.remove('hidden');
+        padEl.classList.add('flex');
+      }
+    };
+    window.addEventListener('resize', this.padResizeListener);
 
     this.updateHUD();
   }
@@ -153,13 +174,13 @@ export class FF7Minigame {
       const mbarPct = Math.min(100, (h.mbarrier / 100) * 100);
 
       return `
-        <div class="flex justify-between items-center">
-          <span class="text-sm sm:text-2xl md:text-4xl leading-none truncate ${nameColor}">
-            ${h.name} ${h.defending ? '<small class="text-[10px] text-cyan-300">[D]</small>' : ''}
+        <div class="flex justify-between items-center h-[30%]">
+          <span class="text-[3.1vh] leading-none truncate ${nameColor}">
+            ${h.name} ${h.defending ? '<small class="text-[2vh] text-cyan-300">[D]</small>' : ''}
           </span>
-          <div class="hidden md:flex flex-col gap-0.5 w-20 lg:w-28 bg-zinc-700 p-0.5 border border-zinc-400">
-            <div class="ff7-slot h-2 w-full"><div class="h-full bg-orange-400" style="width:${barPct}%"></div></div>
-            <div class="ff7-slot h-2 w-full"><div class="h-full bg-green-400" style="width:${mbarPct}%"></div></div>
+          <div class="hidden sm:flex flex-col gap-[0.4vh] w-[5.5vw] max-w-[85px] bg-zinc-700 p-[0.3vh] border border-zinc-400 shrink-0">
+            <div class="ff7-slot h-[0.8vh] w-full"><div class="h-full bg-orange-400" style="width:${barPct}%"></div></div>
+            <div class="ff7-slot h-[0.8vh] w-full"><div class="h-full bg-green-400" style="width:${mbarPct}%"></div></div>
           </div>
         </div>
       `;
@@ -172,24 +193,24 @@ export class FF7Minigame {
       const atbFull = h.atb >= 100;
 
       return `
-        <div class="grid grid-cols-12 items-center gap-1 sm:gap-2">
-          <div class="col-span-5 flex flex-col justify-center">
-            <span class="text-xs sm:text-2xl md:text-4xl leading-none tracking-tight ${h.hp < h.maxHp * 0.25 ? 'text-yellow-300' : 'text-white'}">
+        <div class="grid grid-cols-12 items-center gap-[0.8vw] h-[30%]">
+          <div class="col-span-4 flex flex-col justify-center">
+            <span class="text-[3vh] leading-none tracking-tight ${h.hp < h.maxHp * 0.25 ? 'text-yellow-300' : 'text-white'}">
               ${h.hp}/${h.maxHp}
             </span>
-            <div class="h-0.5 sm:h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-white mt-0.5" style="width:${hpPct}%"></div>
+            <div class="h-[0.4vh] bg-gradient-to-r from-blue-500 via-cyan-300 to-white mt-[0.2vh]" style="width:${hpPct}%"></div>
           </div>
-          <div class="col-span-3 sm:col-span-2 flex flex-col justify-center">
-            <span class="text-xs sm:text-2xl md:text-4xl leading-none">${h.mp}</span>
-            <div class="h-0.5 sm:h-1 bg-gradient-to-r from-emerald-500 via-green-300 to-white mt-0.5" style="width:${mpPct}%"></div>
+          <div class="col-span-2 flex flex-col justify-center">
+            <span class="text-[3vh] leading-none">${h.mp}</span>
+            <div class="h-[0.4vh] bg-gradient-to-r from-emerald-500 via-green-300 to-white mt-[0.2vh]" style="width:${mpPct}%"></div>
           </div>
-          <div class="col-span-2 hidden md:block bg-zinc-700 p-0.5 border border-zinc-400">
-            <div class="ff7-slot h-3 w-full">
+          <div class="col-span-3 bg-zinc-700 p-[0.3vh] border border-zinc-400">
+            <div class="ff7-slot h-[1.6vh] w-full">
               <div class="h-full ${limitFull ? 'bg-gradient-to-r from-red-400 via-yellow-300 to-cyan-300 animate-pulse' : 'bg-gradient-to-b from-pink-200 to-pink-500'}" style="width:${h.limit}%"></div>
             </div>
           </div>
-          <div class="col-span-4 sm:col-span-3 bg-zinc-700 p-0.5 border border-zinc-400">
-            <div class="ff7-slot h-2.5 sm:h-3.5 w-full">
+          <div class="col-span-3 bg-zinc-700 p-[0.3vh] border border-zinc-400">
+            <div class="ff7-slot h-[1.6vh] w-full">
               <div class="h-full ${atbFull ? 'bg-yellow-200' : 'bg-gradient-to-b from-yellow-100 via-yellow-300 to-amber-500'}" style="width:${h.atb}%"></div>
             </div>
           </div>
@@ -447,21 +468,20 @@ export class FF7Minigame {
     if (this.menuState === 'MAIN') {
       subWin.classList.add('hidden');
       cmdWin.innerHTML = this.currentOptions.map((opt, idx) => `
-        <div data-idx="${idx}" class="ff7-menu-opt flex items-center text-base sm:text-2xl md:text-3xl leading-none cursor-pointer py-0.5">
-          ${this.cursorIndex === idx ? this.getGloveCursorHTML() : '<span class="inline-block w-5 mr-1"></span>'}
-          <span>${opt.label}</span>
+        <div data-idx="${idx}" class="ff7-menu-opt flex items-center text-[3vh] leading-none cursor-pointer h-[19%]">
+          ${this.cursorIndex === idx ? this.getGloveCursorHTML() : '<span class="inline-block w-[2.5vh] mr-[0.4vw]"></span>'}
+          <span class="truncate">${opt.label}</span>
         </div>
       `).join('');
     } else {
-      // Solo para MAGIC e ITEM
       subWin.classList.remove('hidden');
       subWin.innerHTML = this.currentOptions.map((opt, idx) => `
-        <div data-idx="${idx}" class="ff7-menu-opt flex justify-between items-center text-lg sm:text-2xl leading-none cursor-pointer py-0.5 ${!opt.enabled ? 'text-gray-400' : 'text-white'}">
-          <div class="flex items-center">
-            ${this.cursorIndex === idx ? this.getGloveCursorHTML() : '<span class="inline-block w-5 mr-1"></span>'}
-            <span>${opt.label}</span>
+        <div data-idx="${idx}" class="ff7-menu-opt flex justify-between items-center text-[2.7vh] leading-none cursor-pointer h-[22%] ${!opt.enabled ? 'text-gray-400' : 'text-white'}">
+          <div class="flex items-center truncate">
+            ${this.cursorIndex === idx ? this.getGloveCursorHTML() : '<span class="inline-block w-[2.5vh] mr-[0.4vw]"></span>'}
+            <span class="truncate">${opt.label}</span>
           </div>
-          ${opt.rightText ? `<span class="text-cyan-300 text-base sm:text-xl">${opt.rightText}</span>` : ''}
+          ${opt.rightText ? `<span class="text-cyan-300 text-[2.4vh] ml-2 shrink-0">${opt.rightText}</span>` : ''}
         </div>
       `).join('');
     }
@@ -1285,6 +1305,7 @@ export class FF7Minigame {
     this.isDisposed = true;
     clearInterval(this.atbInterval);
     window.removeEventListener('keydown', this.keyHandler);
+    window.removeEventListener('resize', this.padResizeListener);
     this.audio.stopBGM();
     if (this.battleScene) {
       this.battleScene.destroy();
