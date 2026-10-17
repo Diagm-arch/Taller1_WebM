@@ -43,60 +43,88 @@ export class FF7Minigame {
     this.container.innerHTML = `
       <div class="w-full h-full flex flex-col bg-black select-none overflow-hidden relative">
         
-        <!-- BANNER SUPERIOR DE MENSAJES DE BATALLA (Como el cuadro superior de magia/ataques en FF7) -->
-        <div id="ff7-top-banner" class="hidden absolute top-3 left-1/2 -translate-x-1/2 z-30 ff7-hud-box px-6 py-1.5 text-xl md:text-3xl text-white text-center min-w-[280px]">
+        <!-- BANNER SUPERIOR DE MENSAJES DE BATALLA -->
+        <div id="ff7-top-banner" class="hidden absolute top-2 left-1/2 -translate-x-1/2 z-30 ff7-hud-box px-3 sm:px-6 py-1 text-sm sm:text-2xl md:text-3xl text-white text-center min-w-[200px] sm:min-w-[280px]">
         </div>
 
-        <!-- PARTE SUPERIOR (68%): Escena 3D + Números de Daño Flotantes -->
-        <div class="relative w-full h-[68%] bg-black overflow-hidden">
+        <!-- PARTE SUPERIOR (64% en móvil, 68% en PC): Escena 3D + Controles PS1 Táctiles -->
+        <div class="relative w-full h-[64%] sm:h-[68%] bg-black overflow-hidden">
           <canvas id="ff7-battle-canvas" class="w-full h-full block" style="image-rendering: pixelated;"></canvas>
           
-          <!-- Capa para mostrar los números de daño/curación sobre los personajes -->
+          <!-- Capa para números de daño -->
           <div id="ff7-damage-layer" class="pointer-events-none absolute inset-0 z-20 overflow-hidden"></div>
 
-          <!-- NUEVO: Cursor Sprite 2D que flota encima de los modelos 3D al elegir objetivo -->
+          <!-- Cursor Sprite 2D sobre los modelos 3D -->
           <div id="ff7-3d-target-cursor" class="hidden pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 transition-all duration-75">
-            <span class="inline-block text-4xl md:text-5xl text-white drop-shadow-[3px_3px_0_#000] rotate-90 animate-bounce">☞</span>
+            <span class="inline-block text-3xl sm:text-5xl text-white drop-shadow-[3px_3px_0_#000] rotate-90 animate-bounce">☞</span>
           </div>
 
-          <!-- Guía rápida de teclado/mouse arriba a la derecha -->
-          <div class="absolute top-2 right-2 flex items-center gap-2 z-20">
-            <span class="ff7-hud-box px-2 py-0.5 text-xs md:text-base text-cyan-200 hidden sm:inline">
-              [↑↓] Mover | [Enter/Clic] OK | [Backspace/Esc] Atrás
+          <!-- Botón de test arriba a la derecha -->
+          <div class="absolute top-1.5 right-1.5 flex items-center gap-1.5 z-20">
+            <span class="ff7-hud-box px-2 py-0.5 text-xs md:text-base text-cyan-200 hidden lg:inline">
+              [↑↓] Mover | [Enter] OK | [Backspace] Atrás
             </span>
-            <button id="ff7-btn-win-test" class="ff7-hud-box px-2 py-0.5 text-xs md:text-lg text-green-300 hover:text-white">
+            <button id="ff7-btn-win-test" class="ff7-hud-box px-2 py-0.5 text-xs sm:text-base text-green-300 hover:text-white">
               [ ★ GANAR TEST ]
+            </button>
+          </div>
+
+          <!-- ===============================================================
+               CONTROLES TÁCTILES TIPO PS1 (Cruceta a la izq, X y O a la der)
+               Solo aparecen en móviles/tablets gracias a .ps1-touch-pad
+               =============================================================== -->
+          <!-- Cruceta (D-PAD) Izquierda -->
+          <div class="ps1-touch-pad absolute bottom-2 left-2 z-40 flex-col items-center gap-0.5 opacity-85">
+            <button id="ps1-btn-up" class="ps1-dpad-btn w-9 h-8 sm:w-11 sm:h-10 flex items-center justify-center text-base font-bold rounded-t">▲</button>
+            <div class="flex gap-7 sm:gap-9">
+              <button id="ps1-btn-left" class="ps1-dpad-btn w-9 h-8 sm:w-11 sm:h-10 flex items-center justify-center text-base font-bold rounded-l">◀</button>
+              <button id="ps1-btn-right" class="ps1-dpad-btn w-9 h-8 sm:w-11 sm:h-10 flex items-center justify-center text-base font-bold rounded-r">▶</button>
+            </div>
+            <button id="ps1-btn-down" class="ps1-dpad-btn w-9 h-8 sm:w-11 sm:h-10 flex items-center justify-center text-base font-bold rounded-b">▼</button>
+          </div>
+
+          <!-- Botones PlayStation (O = Retroceder, X = Aceptar) Derecha -->
+          <div class="ps1-touch-pad absolute bottom-3 right-3 z-40 items-center gap-3 opacity-90">
+            <!-- Botón O (Círculo Rojo: Retroceder) -->
+            <button id="ps1-btn-o" class="ps1-action-btn w-12 h-12 sm:w-14 sm:h-14 flex flex-col items-center justify-center">
+              <span class="text-red-400 text-xl sm:text-2xl font-extrabold leading-none">○</span>
+              <span class="text-[8px] text-gray-300 leading-none mt-0.5">ATRÁS</span>
+            </button>
+            <!-- Botón X (Equis Azul: Aceptar) -->
+            <button id="ps1-btn-x" class="ps1-action-btn w-13 h-13 sm:w-16 sm:h-16 flex flex-col items-center justify-center translate-y-1">
+              <span class="text-blue-400 text-2xl sm:text-3xl font-extrabold leading-none">✕</span>
+              <span class="text-[9px] text-gray-200 leading-none mt-0.5">OK</span>
             </button>
           </div>
         </div>
 
-        <!-- PARTE INFERIOR (32%): HUD Original de Final Fantasy VII + Caja de Comandos Superpuesta -->
-        <div class="w-full h-[32%] grid grid-cols-12 bg-black relative">
+        <!-- PARTE INFERIOR (36% en móvil, 32% en PC): HUD Original de Final Fantasy VII -->
+        <div class="w-full h-[36%] sm:h-[32%] grid grid-cols-12 bg-black relative">
           
-          <!-- CAJA DE COMANDOS DE FF7 (Se superpone entre el panel izquierdo y derecho cuando un héroe tiene turno) -->
-          <div id="ff7-command-window" class="hidden absolute left-[28%] sm:left-[32%] bottom-1 z-30 w-44 sm:w-52 h-[96%] ff7-hud-box px-3 py-1.5 flex flex-col justify-between">
+          <!-- CAJA DE COMANDOS DE FF7 (Adaptada en móvil para no tapar todo) -->
+          <div id="ff7-command-window" class="hidden absolute left-[2%] sm:left-[28%] bottom-0.5 z-30 w-32 sm:w-48 h-[98%] ff7-hud-box px-2 sm:px-3 py-1 flex flex-col justify-between">
           </div>
 
-          <!-- SUBMENÚ DESPLEGABLE (Para lista de Magias, Ítems o Selección de Objetivo) -->
-          <div id="ff7-sub-window" class="hidden absolute left-[48%] sm:left-[50%] bottom-1 z-40 w-64 sm:w-80 h-[96%] ff7-hud-box px-3 py-1.5 flex flex-col justify-between">
+          <!-- SUBMENÚ DESPLEGABLE (Magias / Items / Slots de Tifa) -->
+          <div id="ff7-sub-window" class="hidden absolute left-[34%] sm:left-[48%] bottom-0.5 z-40 w-[64%] sm:w-80 h-[98%] ff7-hud-box px-2 sm:px-3 py-1 flex flex-col justify-between">
           </div>
 
-          <!-- PANEL IZQUIERDO: NAME & BARRIER (5 columnas) -->
-          <div class="col-span-5 ff7-hud-box px-2 md:px-4 py-1 flex flex-col justify-between">
-            <div class="flex justify-between items-center text-xs sm:text-base md:text-xl leading-none ff7-label">
+          <!-- PANEL IZQUIERDO: NAME & BARRIER (4 cols en móvil, 5 en PC) -->
+          <div class="col-span-4 sm:col-span-5 ff7-hud-box px-1.5 sm:px-4 py-0.5 sm:py-1 flex flex-col justify-between">
+            <div class="flex justify-between items-center text-[10px] sm:text-base md:text-xl leading-none ff7-label">
               <span>NAME</span>
-              <span class="hidden sm:inline pr-2">BARRIER</span>
+              <span class="hidden md:inline pr-2">BARRIER</span>
             </div>
             <div id="ff7-heroes-names" class="flex-1 flex flex-col justify-around"></div>
           </div>
 
-          <!-- PANEL DERECHO: HP / MP / LIMIT / TIME (7 columnas) -->
-          <div class="col-span-7 ff7-hud-box px-2 md:px-4 py-1 flex flex-col justify-between">
-            <div class="grid grid-cols-12 items-center text-xs sm:text-base md:text-xl leading-none ff7-label">
+          <!-- PANEL DERECHO: HP / MP / LIMIT / TIME (8 cols en móvil, 7 en PC) -->
+          <div class="col-span-8 sm:col-span-7 ff7-hud-box px-1.5 sm:px-4 py-0.5 sm:py-1 flex flex-col justify-between">
+            <div class="grid grid-cols-12 items-center text-[10px] sm:text-base md:text-xl leading-none ff7-label">
               <span class="col-span-5">HP</span>
-              <span class="col-span-2">MP</span>
+              <span class="col-span-3 sm:col-span-2">MP</span>
               <span class="col-span-2 hidden md:inline text-center">LIMIT</span>
-              <span class="col-span-5 md:col-span-3 text-center">TIME</span>
+              <span class="col-span-4 sm:col-span-3 text-center">TIME</span>
             </div>
             <div id="ff7-heroes-stats" class="flex-1 flex flex-col justify-around"></div>
           </div>
@@ -126,12 +154,12 @@ export class FF7Minigame {
 
       return `
         <div class="flex justify-between items-center">
-          <span class="text-xl sm:text-3xl md:text-4xl leading-none ${nameColor}">
-            ${h.name} ${h.defending ? '<small class="text-xs text-cyan-300">[DEF]</small>' : ''}
+          <span class="text-sm sm:text-2xl md:text-4xl leading-none truncate ${nameColor}">
+            ${h.name} ${h.defending ? '<small class="text-[10px] text-cyan-300">[D]</small>' : ''}
           </span>
-          <div class="hidden sm:flex flex-col gap-1 w-20 md:w-28 bg-zinc-700 p-1 border-2 border-zinc-400">
-            <div class="ff7-slot h-2 md:h-2.5 w-full"><div class="h-full bg-orange-400" style="width:${barPct}%"></div></div>
-            <div class="ff7-slot h-2 md:h-2.5 w-full"><div class="h-full bg-green-400" style="width:${mbarPct}%"></div></div>
+          <div class="hidden md:flex flex-col gap-0.5 w-20 lg:w-28 bg-zinc-700 p-0.5 border border-zinc-400">
+            <div class="ff7-slot h-2 w-full"><div class="h-full bg-orange-400" style="width:${barPct}%"></div></div>
+            <div class="ff7-slot h-2 w-full"><div class="h-full bg-green-400" style="width:${mbarPct}%"></div></div>
           </div>
         </div>
       `;
@@ -144,24 +172,24 @@ export class FF7Minigame {
       const atbFull = h.atb >= 100;
 
       return `
-        <div class="grid grid-cols-12 items-center gap-1 md:gap-3">
+        <div class="grid grid-cols-12 items-center gap-1 sm:gap-2">
           <div class="col-span-5 flex flex-col justify-center">
-            <span class="text-lg sm:text-3xl md:text-4xl leading-none tracking-tight ${h.hp < h.maxHp * 0.25 ? 'text-yellow-300' : 'text-white'}">
+            <span class="text-xs sm:text-2xl md:text-4xl leading-none tracking-tight ${h.hp < h.maxHp * 0.25 ? 'text-yellow-300' : 'text-white'}">
               ${h.hp}/${h.maxHp}
             </span>
-            <div class="h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-white mt-0.5" style="width:${hpPct}%"></div>
+            <div class="h-0.5 sm:h-1 bg-gradient-to-r from-blue-500 via-cyan-300 to-white mt-0.5" style="width:${hpPct}%"></div>
           </div>
-          <div class="col-span-2 flex flex-col justify-center">
-            <span class="text-lg sm:text-3xl md:text-4xl leading-none">${h.mp}</span>
-            <div class="h-1 bg-gradient-to-r from-emerald-500 via-green-300 to-white mt-0.5" style="width:${mpPct}%"></div>
+          <div class="col-span-3 sm:col-span-2 flex flex-col justify-center">
+            <span class="text-xs sm:text-2xl md:text-4xl leading-none">${h.mp}</span>
+            <div class="h-0.5 sm:h-1 bg-gradient-to-r from-emerald-500 via-green-300 to-white mt-0.5" style="width:${mpPct}%"></div>
           </div>
-          <div class="col-span-2 hidden md:block bg-zinc-700 p-1 border-2 border-zinc-400">
-            <div class="ff7-slot h-3.5 md:h-4 w-full">
+          <div class="col-span-2 hidden md:block bg-zinc-700 p-0.5 border border-zinc-400">
+            <div class="ff7-slot h-3 w-full">
               <div class="h-full ${limitFull ? 'bg-gradient-to-r from-red-400 via-yellow-300 to-cyan-300 animate-pulse' : 'bg-gradient-to-b from-pink-200 to-pink-500'}" style="width:${h.limit}%"></div>
             </div>
           </div>
-          <div class="col-span-5 md:col-span-3 bg-zinc-700 p-1 border-2 border-zinc-400">
-            <div class="ff7-slot h-3.5 md:h-4 w-full">
+          <div class="col-span-4 sm:col-span-3 bg-zinc-700 p-0.5 border border-zinc-400">
+            <div class="ff7-slot h-2.5 sm:h-3.5 w-full">
               <div class="h-full ${atbFull ? 'bg-yellow-200' : 'bg-gradient-to-b from-yellow-100 via-yellow-300 to-amber-500'}" style="width:${h.atb}%"></div>
             </div>
           </div>
@@ -740,6 +768,50 @@ export class FF7Minigame {
         }
       });
     }
+    // Conectar la Cruceta (D-Pad) y los botones X / O de PS1 para Móvil
+    const moveCursor = (dir) => {
+      if (this.menuState === 'CLOSED' || this.menuState === 'TIFA_SLOTS' || this.isDisposed) return;
+      if (this.currentOptions.length === 0) return;
+      this.cursorIndex = (this.cursorIndex + dir + this.currentOptions.length) % this.currentOptions.length;
+      this.audio.playSFX('move');
+      this.renderMenuWindow();
+    };
+
+    const bindTouchBtn = (id, fn) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fn();
+      });
+    };
+
+    bindTouchBtn('ps1-btn-up',    () => moveCursor(-1));
+    bindTouchBtn('ps1-btn-left',  () => moveCursor(-1));
+    bindTouchBtn('ps1-btn-down',  () => moveCursor(1));
+    bindTouchBtn('ps1-btn-right', () => moveCursor(1));
+
+    // Botón X (Aceptar / Parar rodillo de Tifa / Cerrar pantalla de victoria)
+    bindTouchBtn('ps1-btn-x', () => {
+      const expScreen = document.getElementById('ff7-exp-screen');
+      if (expScreen) {
+        expScreen.click();
+        return;
+      }
+      if (this.menuState === 'TIFA_SLOTS') {
+        this.stopNextTifaReel();
+        return;
+      }
+      if (this.menuState !== 'CLOSED') {
+        this.confirmSelection();
+      }
+    });
+
+    // Botón O (Retroceder al menú anterior)
+    bindTouchBtn('ps1-btn-o', () => {
+      this.goBackMenu();
+    });
   }
   // =========================================================================
   // COLA DE EJECUCIÓN DE ACCIONES (Aliados y Enemigos esperan su turno)
