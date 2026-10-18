@@ -12,6 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/custom-animations.css">
+  <link rel="manifest" href="./manifest.webmanifest">
 
   <script type="importmap">
     {
@@ -44,11 +45,42 @@
         <p class="text-[10px] sm:text-xs md:text-sm text-cyan-300 leading-tight mt-0.5">Desliza / Scroll: Rotar | Clic: Seleccionar</p>
       </div>
       
-      <div class="flex items-start gap-1.5 sm:gap-2 pointer-events-auto shrink-0">
+      <div class="flex items-start gap-1.5 sm:gap-2 pointer-events-auto shrink-0 relative">
         <div class="ps1-box px-2 py-1 md:px-3 md:py-2 flex items-center gap-1.5 sm:gap-2">
           <button id="btn-bgm-toggle" class="text-[11px] sm:text-xs md:text-base text-yellow-300 hover:text-white">
             [ ▶ BGM: OFF ]
           </button>
+          
+          <!-- Botón de apertura de Volumen (Móvil / Desktop) -->
+          <button id="btn-volume-toggle" aria-label="Ajustar volumen" class="text-xs sm:text-sm md:text-base text-cyan-300 hover:text-white px-1 border-l border-blue-400/50 pl-1.5 active:scale-95 transition">
+            🔊
+          </button>
+        </div>
+
+        <!-- Panel Flotante / Popover de Ajustes y Volumen (Mobile-First) -->
+        <div id="volume-panel" class="hidden absolute top-full right-0 mt-1.5 z-30 ps1-box p-2.5 sm:p-3 w-56 sm:w-64 flex flex-col gap-2">
+          <div class="flex justify-between items-center text-xs text-cyan-300 border-b border-blue-400/40 pb-1">
+            <span class="tracking-wider">VOLUMEN GENERAL</span>
+            <span id="volume-value-text" class="text-yellow-300 font-bold">80%</span>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <button id="btn-volume-mute" class="text-sm text-yellow-300 hover:text-white shrink-0 p-1">
+              🔊
+            </button>
+            <input id="volume-slider" type="range" min="0" max="100" value="80" class="ps1-range flex-1" aria-label="Control de volumen general">
+          </div>
+
+          <!-- Sección MODO PRUEBA: Desbloqueo rápido de todas las recetas -->
+          <div class="border-t border-blue-400/40 pt-2 mt-1 flex flex-col gap-1.5">
+            <div class="flex justify-between items-center text-[10px] text-gray-400">
+              <span class="tracking-widest">MODO PRUEBA</span>
+              <span class="text-yellow-400/80">[TEST]</span>
+            </div>
+            <button id="btn-unlock-all" class="w-full min-h-[38px] bg-green-800 hover:bg-green-700 active:bg-green-900 border border-white text-xs sm:text-sm text-white font-bold py-1 px-2 active:scale-95 transition flex items-center justify-center gap-1.5 shadow">
+              <span>🔓</span>
+              <span>DESBLOQUEAR RECETAS</span>
+            </button>
+          </div>
         </div>
 
         <div class="ps1-box px-2 py-1 md:px-4 md:py-2 text-right">
@@ -138,6 +170,21 @@
     </button>
   </div>
 
-  <script type="module" src="./js/main.js?v=11"></script>
+  <!-- BLOQUEO DE ORIENTACIÓN VERTICAL (MÓVIL) -->
+  <div id="orientation-overlay" class="fixed inset-0 z-[100] bg-black/95 flex-col items-center justify-center p-4 sm:p-6 text-center select-none">
+    <div class="ps1-box p-4 sm:p-6 max-w-xs sm:max-w-sm w-full flex flex-col items-center gap-2.5 sm:gap-3">
+      <div class="rotate-phone-icon text-3xl sm:text-4xl text-yellow-300">📱</div>
+      <h2 class="text-lg sm:text-xl text-yellow-400 tracking-wider leading-tight">MODO HORIZONTAL REQUERIDO</h2>
+      <p class="text-xs sm:text-sm text-cyan-300 leading-snug">
+        Gira tu dispositivo a posición horizontal (landscape) para jugar y explorar el sistema.
+      </p>
+      <button id="btn-force-landscape" class="mt-1 w-full bg-blue-800 hover:bg-blue-700 active:bg-blue-900 border border-white py-2 px-3 text-xs sm:text-sm text-white font-bold active:scale-95 transition shadow">
+        [ ⛶ FORZAR HORIZONTAL ]
+      </button>
+    </div>
+  </div>
+
+  <script type="module" src="./js/volume-control.js?v=12"></script>
+  <script type="module" src="./js/main.js?v=13"></script>
 </body>
 </html>

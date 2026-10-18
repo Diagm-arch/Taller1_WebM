@@ -1,14 +1,13 @@
-import { ThreeHub } from './three-hub.js?v=11';
-import { AudioManager } from './audio-manager.js?v=11';
-import { FF7Minigame } from './minigames/ff7/game-ff7.js?v=11';
-import { BlasphemousPotatoGame } from './minigames/BLASFEPAPA/game-blasfepapa.js?v=11';
-import { RhythmPotatoGame } from './minijuegos/PAPAHERO/game-rhythm.js?v=11';
-import { startPapaGame, stopPapaGame } from './minigames/tbop/tbop.js?v=11';
-import { RECIPES } from './recipes.js?v=11';
+// js/main.js
+
+import { ThreeHub } from './three-hub.js?v=12';
+import { AudioManager } from './audio-manager.js?v=12';
+import { GameManager } from './game-manager.js?v=12';
+import { getVolume, setVolume, onVolumeChange, unlockAudio } from './volume-control.js?v=12';
 
 // 1. MIX DE FONDO (guarda el .mp3 en ./assets/audio/)
 const dnbPlaylist = [
-  { title: 'DnB Mix', src: './assets/audio/dnb-track-1.mp3' } // un solo mix largo: ajusta el nombre del archivo si es otro
+  { title: 'DnB Mix', src: './assets/audio/dnb-track-1.mp3' }
 ];
 
 const bgm = new AudioManager(dnbPlaylist, 3000); // 3 seg de Fade In / Fade Out
@@ -19,22 +18,19 @@ const descEl = document.getElementById('selected-desc');
 const btnAction = document.getElementById('btn-action');
 const btnRecipe = document.getElementById('btn-recipe');
 const btnBgmToggle = document.getElementById('btn-bgm-toggle');
-
-// Referencias del Modal de Minijuegos y Transiciones (Sin duplicados)
-const modal = document.getElementById('minigame-modal');
-const minigameModal = modal; // Alias por compatibilidad
-const minigameTitle = document.getElementById('minigame-title');
-const minigameStage = document.getElementById('minigame-stage');
-const btnExitGame = document.getElementById('btn-exit-game');
 const unlockCounter = document.getElementById('unlock-counter');
-const transitionOverlay = document.getElementById('transition-overlay');
-const webglCanvas = document.getElementById('webgl-canvas');
-const uiLayer = document.getElementById('ui-layer');
 
 let activeNodeIndex = -1;
 let activeRecipe = null;
-let currentGameInstance = null;
-let isTransitioning = false;
+
+// Inicializar Gestor de Minijuegos y Recetario
+const gameManager = new GameManager({
+  bgm,
+  onUnlockNode: (nodeIndex) => {
+    hub.unlockNode(nodeIndex);
+    updateUnlockCounterUI();
+  }
+});
 
 // Inicializar Hub 3D
 const hub = new ThreeHub('webgl-canvas', handleNodeSelection);
@@ -67,7 +63,7 @@ function handleNodeSelection(recipe, index) {
     btnAction.textContent = '✔ JUGAR DE NUEVO';
     btnAction.className = 'flex-1 sm:flex-none bg-blue-700 hover:bg-blue-600 border border-white py-1 sm:py-2 px-3 sm:px-5 text-xs sm:text-sm md:text-lg text-white active:scale-95 transition';
     btnAction.classList.remove('hidden');
-    btnRecipe.classList.remove('hidden'); // la receta solo se ve tras vencer el juego
+    btnRecipe.classList.remove('hidden');
   } else {
     titleEl.textContent = recipe.lockedName;
     titleEl.className = 'text-sm sm:text-lg md:text-2xl text-red-400 leading-tight truncate';
@@ -79,227 +75,47 @@ function handleNodeSelection(recipe, index) {
   }
 }
 
-// Actualiza el contador de archivos desbloqueados (0 / 4 -> 4 / 4)
+// Actualiza el contador de archivos desbloqueados (0 / 4 -> 4 / 4) y estado del botón de prueba
 function updateUnlockCounterUI() {
   const unlockedTotal = hub.recipesData.filter(r => r.unlocked).length;
   unlockCounter.textContent = `${unlockedTotal} / ${hub.recipesData.length}`;
+  refreshUnlockAllButton();
 }
 
-// =========================================================================
-// RECETARIO (solo accesible con la receta desbloqueada)
-// =========================================================================
-const recipeModal = document.getElementById('recipe-modal');
-const btnRecipeClose = document.getElementById('btn-recipe-close');
-const isRecipeOpen = () => !!recipeModal && !recipeModal.classList.contains('hidden');
-
-function openRecipe() {
-  if (!activeRecipe || !activeRecipe.unlocked) return;
-  if (!modal.classList.contains('hidden') || isTransitioning) return;
-  const data = RECIPES[activeRecipe.id];
-  if (!data) return;
-
-  document.getElementById('recipe-badge').textContent = `RECETA #0${activeNodeIndex + 1} — ${activeRecipe.author.toUpperCase()}`;
-  document.getElementById('recipe-title').textContent = data.title;
-  document.getElementById('recipe-meta').textContent = data.meta;
-  document.getElementById('recipe-tip').textContent = `★ TIP: ${data.tip}`;
-
-  const ingredientsEl = document.getElementById('recipe-ingredients');
-  ingredientsEl.replaceChildren(...data.ingredients.map((text) => {
-    const li = document.createElement('li');
-    li.textContent = `▸ ${text}`;
-    return li;
-  }));
-
-  const stepsEl = document.getElementById('recipe-steps');
-  stepsEl.replaceChildren(...data.steps.map((text, i) => {
-    const li = document.createElement('li');
-    li.className = 'flex gap-2';
-    const num = document.createElement('span');
-    num.className = 'text-yellow-300 shrink-0';
-    num.textContent = String(i + 1).padStart(2, '0');
-    const body = document.createElement('span');
-    body.textContent = text;
-    li.append(num, body);
-    return li;
-  }));
-
-  document.getElementById('recipe-scroll').scrollTop = 0;
-  recipeModal.classList.remove('hidden');
-  btnRecipeClose.focus();
+const btnUnlockAll = document.getElementById('btn-unlock-all');
+function refreshUnlockAllButton() {
+  if (!btnUnlockAll) return;
+  const allUnlocked = hub.recipesData.every(r => r.unlocked);
+  if (allUnlocked) {
+    btnUnlockAll.disabled = true;
+    btnUnlockAll.classList.remove('bg-green-800', 'hover:bg-green-700', 'active:bg-green-900');
+    btnUnlockAll.classList.add('bg-zinc-800', 'opacity-60', 'cursor-default');
+    btnUnlockAll.innerHTML = '<span>✔</span><span>TODO DESBLOQUEADO</span>';
+  } else {
+    btnUnlockAll.disabled = false;
+    btnUnlockAll.classList.add('bg-green-800', 'hover:bg-green-700', 'active:bg-green-900');
+    btnUnlockAll.classList.remove('bg-zinc-800', 'opacity-60', 'cursor-default');
+    btnUnlockAll.innerHTML = '<span>🔓</span><span>DESBLOQUEAR RECETAS</span>';
+  }
 }
 
-function closeRecipe() {
-  recipeModal.classList.add('hidden');
+if (btnUnlockAll) {
+  btnUnlockAll.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hub.unlockAll();
+    updateUnlockCounterUI();
+  });
 }
+
+// Conectar botones de acción y recetario con GameManager
+btnAction.addEventListener('click', () => {
+  btnAction.blur();
+  gameManager.startChallenge(activeRecipe, activeNodeIndex);
+});
 
 btnRecipe.addEventListener('click', () => {
   btnRecipe.blur();
-  openRecipe();
-});
-btnRecipeClose.addEventListener('click', closeRecipe);
-recipeModal.addEventListener('click', (e) => {
-  if (e.target === recipeModal) closeRecipe(); // clic en el fondo oscuro
-});
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && isRecipeOpen()) closeRecipe();
-});
-
-// El hub escucha pointer/wheel/touch en window: mientras el recetario está abierto no debe girar ni seleccionar nada detrás
-['pointerdown', 'pointerup', 'wheel', 'touchstart', 'touchend'].forEach((evt) => {
-  recipeModal.addEventListener(evt, (e) => e.stopPropagation(), { passive: true });
-});
-
-// Cierra el modal y limpia el minijuego en ejecución
-function closeMinigameModal() {
-  if (currentGameInstance && typeof currentGameInstance.destroy === 'function') {
-    currentGameInstance.destroy();
-  }
-  currentGameInstance = null;
-  minigameStage.innerHTML = '';
-  modal.classList.add('hidden');
-
-  // Si el AudioManager nuevo tiene resume(), lo usa (TBOP y Blasfepapa igual manejan su propio restore)
-  if (typeof bgm.resume === 'function') {
-    bgm.resume();
-  }
-}
-
-// =========================================================================
-// TRANSICIONES
-// =========================================================================
-
-// Encuentro aleatorio de FF7 (Vortex/Swirl + Blur + Flash) — solo nodo FF7
-function playFF7BattleTransition(onComplete) {
-  if (isTransitioning) return;
-  isTransitioning = true;
-
-  const enterSfx = new Audio('./assets/audio/ff7/sfx/batttle-enter.mp3');
-  enterSfx.volume = 0.75;
-  enterSfx.play().catch(() => {});
-
-  if (webglCanvas) webglCanvas.classList.add('ff7-warp-active');
-  if (uiLayer) uiLayer.classList.add('ff7-warp-active');
-  transitionOverlay.classList.add('ff7-overlay-active');
-
-  setTimeout(() => {
-    onComplete();
-
-    if (webglCanvas) webglCanvas.classList.remove('ff7-warp-active');
-    if (uiLayer) uiLayer.classList.remove('ff7-warp-active');
-
-    transitionOverlay.style.transition = 'opacity 0.35s ease';
-    transitionOverlay.style.opacity = '0';
-
-    setTimeout(() => {
-      transitionOverlay.classList.remove('ff7-overlay-active');
-      transitionOverlay.style.transition = '';
-      transitionOverlay.style.opacity = '';
-      isTransitioning = false;
-    }, 350);
-  }, 1350);
-}
-
-// Flash PS1 blanco/negro — resto de nodos
-function playPS1EncounterFlash(onComplete) {
-  if (isTransitioning) return;
-  isTransitioning = true;
-
-  transitionOverlay.classList.remove('trigger-encounter');
-  void transitionOverlay.offsetWidth; // Forzar reflow para reiniciar la animación
-  transitionOverlay.classList.add('trigger-encounter');
-
-  setTimeout(() => {
-    onComplete();
-    isTransitioning = false;
-  }, 550);
-}
-
-// =========================================================================
-// LANZAMIENTO DE MINIJUEGOS
-// =========================================================================
-function launchMinigame() {
-  const nodeIndex = activeNodeIndex;
-  const recipe = activeRecipe;
-  if (!recipe) return;
-
-  if (currentGameInstance && typeof currentGameInstance.destroy === 'function') {
-    currentGameInstance.destroy();
-  }
-  currentGameInstance = null;
-  minigameStage.innerHTML = '';
-
-  if (minigameTitle) {
-    minigameTitle.textContent = `DESAFÍO #0${nodeIndex + 1} — ${recipe.author.toUpperCase()}`;
-  }
-  modal.classList.remove('hidden');
-
-  // Callback cuando el jugador supera el minijuego
-  const onWinMinigame = () => {
-    hub.unlockNode(nodeIndex);
-    updateUnlockCounterUI();
-    closeMinigameModal();
-  };
-
-  if (recipe.id === 'ff7') {
-    // NODO #01 - FF7
-    currentGameInstance = new FF7Minigame(
-      minigameStage,
-      () => {
-        currentGameInstance = null;
-        onWinMinigame();
-      },
-      () => {
-        currentGameInstance = null;
-        closeMinigameModal();
-      }
-    );
-
-  } else if (recipe.id === 'survivor') {
-    // NODO #02 - Survivor
-    minigameStage.innerHTML = '<p class="text-yellow-300 text-xl text-center px-4">Minijuego #02 (Survivor) pendiente de integración...</p>';
-
-  } else if (recipe.id === 'rhythm') {
-    // NODO #02 - Integrante 2
-    currentGameInstance = new RhythmPotatoGame(minigameStage, onWinMinigame, bgm);
-
-  } else if (recipe.id === 'masher') {
-    // NODO #03 - THE BINDING OF PAPA (TBOP)
-    if (minigameTitle) minigameTitle.textContent = 'DESAFÍO #03 — The Binding Of Papa';
-    startPapaGame(minigameStage, onWinMinigame, bgm);
-    currentGameInstance = {
-      destroy: () => stopPapaGame()
-    };
-
-  } else if (recipe.id === 'jacket') {
-    // NODO #04 - BLASFEPAPA
-    if (minigameTitle) minigameTitle.textContent = 'DESAFÍO #04 — PENITENCIA DEL TUBÉRCULO';
-    currentGameInstance = new BlasphemousPotatoGame(minigameStage, onWinMinigame, bgm);
-  }
-}
-
-// Botón "DESBLOQUEAR JUEGO" / "JUGAR DE NUEVO"
-btnAction.addEventListener('click', () => {
-  btnAction.blur(); // Quita el foco para que Enter no lo reactive durante la pelea
-  if (!activeRecipe || isTransitioning || !modal.classList.contains('hidden') || isRecipeOpen()) return;
-
-  // Si es FF7 o Survivor y existe bgm.suspend(), lo usamos.
-  // Para 'masher' (TBOP) y 'jacket' (Blasfepapa), sus propias clases de audio pausan y restauran bgm.
-  if (activeRecipe.id !== 'masher' && activeRecipe.id !== 'jacket') {
-    if (typeof bgm.suspend === 'function') {
-      bgm.suspend();
-    }
-  }
-
-  if (activeRecipe.id === 'ff7') {
-    playFF7BattleTransition(launchMinigame);
-  } else {
-    playPS1EncounterFlash(launchMinigame);
-  }
-});
-
-// Botón [ HUIR ] para salir del modal del minijuego
-btnExitGame.addEventListener('click', () => {
-  closeMinigameModal();
+  gameManager.openRecipe(activeRecipe, activeNodeIndex);
 });
 
 // =========================================================================
@@ -315,7 +131,7 @@ const bootScreen = document.getElementById('boot-screen');
 const bootBar = document.getElementById('boot-bar');
 const bootStatus = document.getElementById('boot-status');
 const btnEnter = document.getElementById('btn-enter');
-let hasEntered = !bootScreen; // Si no existe boot-screen en el HTML, permite usar el hub de inmediato
+let hasEntered = !bootScreen;
 let bootAudioState = 'ready';
 
 if (bootScreen && btnEnter) {
@@ -339,7 +155,6 @@ if (bootScreen && btnEnter) {
       btnEnter.focus();
     });
   } else {
-    // Respaldo si tienes el audio-manager.js anterior (sin método preload)
     if (bootBar) bootBar.style.width = '100%';
     if (bootStatus) bootStatus.textContent = 'MÚSICA LISTA';
     btnEnter.disabled = false;
@@ -349,6 +164,9 @@ if (bootScreen && btnEnter) {
   btnEnter.addEventListener('click', () => {
     if (hasEntered) return;
     hasEntered = true;
+
+    unlockAudio();
+    tryLockLandscape(true);
 
     if (bootAudioState !== 'error') {
       if (typeof bgm.play === 'function') {
@@ -362,7 +180,6 @@ if (bootScreen && btnEnter) {
     setTimeout(() => bootScreen.remove(), 600);
   });
 } else {
-  // Si tu index.html no tiene pantalla de carga (boot-screen), usa el arranque clásico
   window.addEventListener('DOMContentLoaded', () => {
     bgm.togglePlay(updateBgmUI);
   });
@@ -375,11 +192,168 @@ btnBgmToggle.addEventListener('click', (e) => {
 });
 
 // =========================================================================
+// CONTROL DE VOLUMEN GLOBAL
+// =========================================================================
+const btnVolumeToggle = document.getElementById('btn-volume-toggle');
+const volumePanel = document.getElementById('volume-panel');
+const volumeSlider = document.getElementById('volume-slider');
+const volumeValueText = document.getElementById('volume-value-text');
+const btnVolumeMute = document.getElementById('btn-volume-mute');
+
+let lastNonZeroVolume = 0.8;
+
+function updateVolumeUI(val) {
+  const pct = Math.round(val * 100);
+  if (volumeSlider) volumeSlider.value = pct;
+  if (volumeValueText) volumeValueText.textContent = `${pct}%`;
+
+  let icon = '🔊';
+  if (pct === 0) icon = '🔇';
+  else if (pct < 40) icon = '🔈';
+  else if (pct < 75) icon = '🔉';
+
+  if (btnVolumeToggle) btnVolumeToggle.textContent = icon;
+  if (btnVolumeMute) btnVolumeMute.textContent = icon;
+}
+
+// Inicializar con el valor persistido
+const initVol = getVolume();
+updateVolumeUI(initVol);
+if (initVol > 0) lastNonZeroVolume = initVol;
+
+onVolumeChange((vol) => {
+  updateVolumeUI(vol);
+  if (vol > 0) lastNonZeroVolume = vol;
+});
+
+if (volumeSlider) {
+  volumeSlider.addEventListener('input', (e) => {
+    const val = Number(e.target.value) / 100;
+    setVolume(val);
+  });
+}
+
+if (btnVolumeMute) {
+  btnVolumeMute.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const cur = getVolume();
+    if (cur > 0) {
+      lastNonZeroVolume = cur;
+      setVolume(0);
+    } else {
+      setVolume(lastNonZeroVolume || 0.8);
+    }
+  });
+}
+
+function toggleVolumePanel(e) {
+  if (e) e.stopPropagation();
+  if (!volumePanel) return;
+  const isClosed = volumePanel.classList.contains('hidden');
+  if (isClosed) {
+    volumePanel.classList.remove('hidden');
+  } else {
+    volumePanel.classList.add('hidden');
+  }
+}
+
+if (btnVolumeToggle) {
+  btnVolumeToggle.addEventListener('click', toggleVolumePanel);
+}
+
+if (volumePanel) {
+  // Evitar que arrastrar el slider en móvil o rotar active el giro 3D del hub
+  ['touchstart', 'touchmove', 'touchend', 'wheel', 'pointerdown', 'pointerup', 'click'].forEach((evt) => {
+    volumePanel.addEventListener(evt, (e) => e.stopPropagation(), { passive: true });
+  });
+
+  // Cerrar al hacer clic fuera del panel
+  window.addEventListener('click', (e) => {
+    if (!volumePanel.classList.contains('hidden')) {
+      if (!volumePanel.contains(e.target) && e.target !== btnVolumeToggle) {
+        volumePanel.classList.add('hidden');
+      }
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !volumePanel.classList.contains('hidden')) {
+      volumePanel.classList.add('hidden');
+    }
+  });
+}
+
+function isVolumePanelOpen() {
+  return volumePanel && !volumePanel.classList.contains('hidden');
+}
+
+// =========================================================================
+// GESTIÓN DE ORIENTACIÓN HORIZONTAL (MÓVIL / TABLET)
+// =========================================================================
+const orientationOverlay = document.getElementById('orientation-overlay');
+const btnForceLandscape = document.getElementById('btn-force-landscape');
+
+export function tryLockLandscape(requestFullscreen = false) {
+  const isMobile = window.innerWidth <= 920 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  if (!isMobile) return;
+
+  const doLock = () => {
+    if (screen.orientation && typeof screen.orientation.lock === 'function') {
+      screen.orientation.lock('landscape').catch(() => {
+        // En navegadores que no permitan lock silencioso (ej. Safari), no interrumpe el flujo
+      });
+    }
+  };
+
+  if (requestFullscreen && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen()
+      .then(doLock)
+      .catch(() => doLock());
+  } else {
+    doLock();
+  }
+}
+
+if (btnForceLandscape) {
+  btnForceLandscape.addEventListener('click', (e) => {
+    e.stopPropagation();
+    tryLockLandscape(true);
+  });
+}
+
+if (orientationOverlay) {
+  ['touchstart', 'touchmove', 'touchend', 'wheel', 'pointerdown', 'pointerup', 'click'].forEach((evt) => {
+    orientationOverlay.addEventListener(evt, (e) => e.stopPropagation(), { passive: true });
+  });
+}
+
+function isPortraitBlocked() {
+  // Activo cuando el overlay esté visible según CSS o si el viewport móvil es vertical
+  const isNarrowMobile = (window.innerWidth <= 920 || 'ontouchstart' in window || navigator.maxTouchPoints > 0);
+  const isPortrait = window.innerHeight > window.innerWidth;
+  return isNarrowMobile && isPortrait;
+}
+
+// Re-calcular tamaño del canvas 3D y vista cuando se rote la pantalla
+window.addEventListener('resize', () => {
+  if (!isPortraitBlocked() && hub && typeof hub.setPS1Resolution === 'function') {
+    hub.setPS1Resolution();
+  }
+});
+if (screen.orientation) {
+  screen.orientation.addEventListener('change', () => {
+    if (!isPortraitBlocked() && hub && typeof hub.setPS1Resolution === 'function') {
+      hub.setPS1Resolution();
+    }
+  });
+}
+
+// =========================================================================
 // EVENTOS DE SCROLL (PC) Y SWIPE (MÓVIL)
 // =========================================================================
 let lastScrollTime = 0;
 window.addEventListener('wheel', (e) => {
-  if (!hasEntered || isRecipeOpen() || !modal.classList.contains('hidden') || isTransitioning) return;
+  if (!hasEntered || isPortraitBlocked() || isVolumePanelOpen() || gameManager.isRecipeOpen() || gameManager.isMinigameOpen() || gameManager.isTransitioning) return;
   const now = Date.now();
   if (now - lastScrollTime < 350) return;
   lastScrollTime = now;
@@ -388,14 +362,14 @@ window.addEventListener('wheel', (e) => {
 
 let touchStartX = 0;
 window.addEventListener('touchstart', (e) => {
-  if (!hasEntered || isRecipeOpen() || !modal.classList.contains('hidden') || isTransitioning) return;
+  if (!hasEntered || isPortraitBlocked() || isVolumePanelOpen() || gameManager.isRecipeOpen() || gameManager.isMinigameOpen() || gameManager.isTransitioning) return;
   touchStartX = e.touches[0].clientX;
 }, { passive: true });
 
 window.addEventListener('touchend', (e) => {
-  if (!hasEntered || isRecipeOpen() || !modal.classList.contains('hidden') || isTransitioning) return;
+  if (!hasEntered || isPortraitBlocked() || isVolumePanelOpen() || gameManager.isRecipeOpen() || gameManager.isMinigameOpen() || gameManager.isTransitioning) return;
   const deltaX = touchStartX - e.changedTouches[0].clientX;
   if (Math.abs(deltaX) > 45) {
     hub.rotateRing(deltaX);
   }
-}, { passive: true });
+});

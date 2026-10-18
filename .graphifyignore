@@ -1,0 +1,82 @@
+# ==============================================================================
+# .graphifyignore
+# Excludes non-source, binary, and environment files from graphify knowledge graphs
+# ==============================================================================
+
+# Git & Version Control
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# Graphify Outputs & Caches
+graphify-out/
+.graphify/
+
+# Media & Binary Assets (Audio, Fonts, Images, Game Charts)
+# Web project source code is in HTML, CSS, and JS.
+# Large audio files, fonts, images, and game chart data should be excluded from code graphs.
+assets/audio/
+assets/fonts/
+assets/images/
+assets/rhythmGame/
+*.mp3
+*.wav
+*.ogg
+*.flac
+*.m4a
+*.aac
+*.ttf
+*.otf
+*.woff
+*.woff2
+*.eot
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.svg
+*.chart
+
+# 3D Assets & Models
+*.glb
+*.gltf
+*.obj
+*.fbx
+*.bin
+
+
+# Package Managers, Dependencies & Build Artifacts
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+out/
+.cache/
+
+# Environment & Sensitive Files
+.env
+.env.*
+*.local
+
+# OS Metadata & Temp Files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# IDE & Editor Configurations
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

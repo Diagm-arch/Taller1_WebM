@@ -11,7 +11,7 @@ export class ThreeHub {
     this.recipesData = [
       {
         id: 'ff7',
-        author: 'Integrante 1',
+        author: 'FF7: BATALLA',
         lockedName: '??? [ARCHIVO ENCRIPTADO #01]',
         unlockedName: 'PAPAS FRITAS CRUJIENTES',
         lockedDesc: 'Se detecta calor extremo. Haz CLIC en el signo "???" 3D o en el botón para iniciar la batalla RPG.',
@@ -21,7 +21,7 @@ export class ThreeHub {
       },
       {
         id: 'rhythm',
-        author: 'Integrante 2',
+        author: 'PAPAHERO',
         lockedName: '??? [ARCHIVO ENCRIPTADO #02]',
         unlockedName: 'HASHBROWNS DORADOS',
         lockedDesc: 'Manten el ritmo para conseguir la receta. ¡Haz clic para entrar al desafío!',
@@ -31,7 +31,7 @@ export class ThreeHub {
       },
       {
         id: 'masher',
-        author: 'Integrante 3',
+        author: 'THE BINDING OF PAPA',
         lockedName: '??? [ARCHIVO ENCRIPTADO #03]',
         unlockedName: 'PURÉ CREMOSO SUPREMO',
         lockedDesc: 'Requiere fuerza bruta para romper su estructura molecular. ¡Haz clic para entrar al desafío!',
@@ -41,10 +41,10 @@ export class ThreeHub {
       },
       {
         id: 'jacket',
-        author: 'Integrante 4',
+        author: 'BLASFEPAPA',
         lockedName: '??? [ARCHIVO ENCRIPTADO #04]',
         unlockedName: 'JACKET POTATO / PAPA MAYO',
-        lockedDesc: 'Señal bloqueada tras una armadura térmica de aluminio. Supera el desafío del Integrante 4.',
+        lockedDesc: 'Señal bloqueada tras una armadura térmica de aluminio. Supera el desafío para recuperar la receta.',
         unlockedDesc: 'Papa asada abierta bañada en mayonesa y cebollín. El tanque definitivo.',
         unlocked: false,
         modelPath: null
@@ -346,29 +346,49 @@ createSingleQuestionMarkMesh(material) {
     this.onSelectNode(currentRecipe, this.selectedIndex);
   }
 
+  // Reemplaza visualmente el "???" 3D por el modelo 3D de la comida
+  swapNodeToFood(index) {
+    const recipe = this.recipesData[index];
+    const nodeObj = this.nodes[index];
+    if (!nodeObj) return;
+
+    nodeObj.visualHolder.clear();
+
+    if (recipe.modelPath) {
+      this.gltfLoader.load(recipe.modelPath, (gltf) => {
+        nodeObj.visualHolder.add(gltf.scene);
+      });
+    } else {
+      const food3D = this.createFoodModel3D(recipe.id);
+      nodeObj.visualHolder.add(food3D);
+    }
+  }
+
   // Reemplaza el "???" 3D por el modelo 3D Low-Poly de la comida al ganar el minijuego
   unlockNode(index) {
     const recipe = this.recipesData[index];
     if (!recipe || recipe.unlocked) return;
     recipe.unlocked = true;
 
-    const nodeObj = this.nodes[index];
-
-    // Limpiar el modelo "???" anterior
-    nodeObj.visualHolder.clear();
-
-    // Si algún integrante creó un archivo .glb en Blender y lo puso en recipe.modelPath, lo carga:
-    if (recipe.modelPath) {
-      this.gltfLoader.load(recipe.modelPath, (gltf) => {
-        nodeObj.visualHolder.add(gltf.scene);
-      });
-    } else {
-      // De lo contrario, usa nuestro modelo 3D Low-Poly generado por código
-      const food3D = this.createFoodModel3D(recipe.id);
-      nodeObj.visualHolder.add(food3D);
-    }
-
+    this.swapNodeToFood(index);
     this.notifySelection();
+  }
+
+  // Desbloquea todas las recetas de una sola vez (modo prueba / testing)
+  unlockAll() {
+    let unlockedCount = 0;
+    this.recipesData.forEach((recipe, index) => {
+      if (!recipe.unlocked) {
+        recipe.unlocked = true;
+        this.swapNodeToFood(index);
+        unlockedCount++;
+      }
+    });
+
+    if (unlockedCount > 0) {
+      this.notifySelection();
+    }
+    return unlockedCount;
   }
 
   // REQUERIMIENTO 6: Animación desarrollada por el equipo (15% de la nota)

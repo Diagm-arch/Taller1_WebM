@@ -20,7 +20,7 @@ export const RECIPES = {
     tip: 'Seca bien las papas antes de freír: el agua hace saltar el aceite y evita que queden crujientes. No llenes la olla, fríe por tandas.'
   },
 
-  survivor: {
+  rhythm: {
     title: 'HASHBROWNS DORADOS',
     meta: 'Tiempo: 25 min  |  Porciones: 4  |  Dificultad: Fácil',
     ingredients: [

@@ -1145,68 +1145,79 @@ export class FF7Minigame {
       { name: 'Papa Tifa',   level: 32, exp: 39688, next: 1012, barPct: 42, img: './assets/images/ff7/tifa.png' }
     ];
 
+    // Ocultar botón [ ◀ HUB ] exterior mientras dura la pantalla de victoria para evitar salida sin desbloqueo
+    const exitHubBtn = document.getElementById('btn-exit-game');
+    if (exitHubBtn) exitHubBtn.classList.add('invisible');
+
     const screen = document.createElement('div');
     screen.id = 'ff7-exp-screen';
-    screen.className = 'absolute inset-0 z-50 bg-black p-1.5 sm:p-3 flex flex-col gap-1.5 select-none cursor-pointer opacity-0 transition-opacity duration-700 ease-in-out';
+    // Estructura adaptativa completa usando container query units (cqh / cqw)
+    screen.className = 'absolute inset-0 z-50 bg-black p-[1.5cqh] sm:p-[2.2cqh] flex flex-col justify-between gap-[1cqh] select-none cursor-pointer opacity-0 transition-opacity duration-700 ease-in-out overflow-hidden';
+
+    const continuePrompt = this.isMobile ? '[TOCA PARA CONTINUAR]' : '[ENTER / CLIC PARA CONTINUAR]';
 
     screen.innerHTML = `
       <!-- Fila 1: Banner superior "Gained EXP and AP." -->
-      <div class="ff7-hud-box px-4 py-1.5 sm:py-2 text-xl sm:text-3xl text-white flex justify-between items-center">
-        <span>Gained EXP and AP.</span>
-        <span class="text-xs sm:text-lg text-yellow-300 animate-pulse">[ENTER / CLIC PARA CONTINUAR]</span>
+      <div class="ff7-hud-box px-[2.5cqw] py-[0.8cqh] shrink-0 flex flex-col sm:flex-row justify-between sm:items-center gap-0.5">
+        <span class="text-[length:clamp(14px,min(3.4cqh,4.2cqw),32px)] text-white font-bold leading-tight tracking-wide">Gained EXP and AP.</span>
+        <span class="text-[length:clamp(10px,min(2.1cqh,3cqw),20px)] text-yellow-300 animate-pulse font-normal leading-tight">${continuePrompt}</span>
       </div>
 
       <!-- Fila 2: Cajas divididas de EXP y AP -->
-      <div class="grid grid-cols-2 gap-1.5">
-        <div class="ff7-hud-box px-4 sm:px-8 py-1 flex justify-between items-center text-xl sm:text-3xl">
-          <span class="ff7-label">EXP</span>
-          <span class="text-white">300<small class="text-base sm:text-2xl ml-0.5">P</small></span>
+      <div class="grid grid-cols-2 gap-[1.2cqw] shrink-0">
+        <div class="ff7-hud-box px-[3cqw] py-[0.6cqh] flex justify-between items-center text-[length:clamp(13px,min(3cqh,3.8cqw),30px)]">
+          <span class="ff7-label font-bold">EXP</span>
+          <span class="text-white font-mono">300<small class="text-[0.75em] ml-0.5">P</small></span>
         </div>
-        <div class="ff7-hud-box px-4 sm:px-8 py-1 flex justify-between items-center text-xl sm:text-3xl">
-          <span class="ff7-label">AP</span>
-          <span class="text-white">30<small class="text-base sm:text-2xl ml-0.5">P</small></span>
+        <div class="ff7-hud-box px-[3cqw] py-[0.6cqh] flex justify-between items-center text-[length:clamp(13px,min(3cqh,3.8cqw),30px)]">
+          <span class="ff7-label font-bold">AP</span>
+          <span class="text-white font-mono">30<small class="text-[0.75em] ml-0.5">P</small></span>
         </div>
       </div>
 
-      <!-- Filas 3, 4 y 5: Tarjetas de los 3 personajes con espacio vacío listo para el Portrait -->
-      <div class="flex-1 flex flex-col gap-1.5">
+      <!-- Filas 3, 4 y 5: Tarjetas de los 3 personajes responsivas -->
+      <div class="flex-1 min-h-0 flex flex-col justify-between gap-[1cqh] overflow-hidden">
         ${expData.map((h) => `
-          <div class="flex-1 ff7-hud-box px-3 sm:px-6 py-1.5 grid grid-cols-12 items-center gap-2 sm:gap-4">
+          <div class="flex-1 min-h-0 ff7-hud-box px-[2cqw] py-[0.8cqh] flex items-center gap-[2cqw] overflow-hidden">
             
-            <!-- RECUADRO DE PORTRAIT (Vacío por defecto, listo para rellenar con tu imagen real) -->
-            <div class="col-span-3 sm:col-span-2 flex justify-center items-center">
-              <div class="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-[#000028] border-2 border-zinc-400 shadow-inner overflow-hidden flex items-center justify-center">
-                <!-- Cuando agregues la imagen en ./assets/images/ff7/ se mostrará sola; si no existe, queda el cuadro limpio -->
+            <!-- RECUADRO DE PORTRAIT (Escala con la altura disponible de la fila) -->
+            <div class="h-full aspect-square max-h-[18cqh] shrink-0 flex items-center justify-center">
+              <div class="w-full h-full max-w-[75px] max-h-[75px] bg-[#000028] border-2 border-zinc-400 shadow-inner overflow-hidden flex items-center justify-center">
                 <img src="${h.img}" alt="" class="w-full h-full object-cover hidden" onload="this.classList.remove('hidden')" onerror="this.classList.add('hidden')" />
               </div>
             </div>
 
-            <!-- Nombre y Nivel -->
-            <div class="col-span-4 sm:col-span-4 flex flex-col justify-between h-full py-1">
-              <span class="text-xl sm:text-3xl md:text-4xl text-white leading-none">${h.name}</span>
-              <div class="text-lg sm:text-2xl md:text-3xl text-white leading-none">
-                <span class="ff7-label mr-2">Level:</span>${h.level}
-              </div>
-            </div>
-
-            <!-- EXP actual, barra rosa/salmón y next level -->
-            <div class="col-span-5 sm:col-span-6 flex flex-col justify-between h-full py-1">
-              <div class="flex justify-between items-baseline text-lg sm:text-2xl md:text-3xl leading-none">
-                <span class="ff7-label">EXP:</span>
-                <span>${h.exp}<small class="text-sm sm:text-xl ml-0.5">P</small></span>
-              </div>
-
-              <!-- Barra de progreso de nivel estilo FF7 -->
-              <div class="w-4/5 ml-auto bg-zinc-700 p-0.5 border-2 border-zinc-400 my-0.5">
-                <div class="ff7-slot h-2.5 sm:h-3.5 w-full">
-                  <div class="h-full bg-gradient-to-b from-red-200 via-rose-400 to-red-500" style="width:${h.barPct}%"></div>
+            <!-- DETALLES DEL HÉROE: Dividido en 2 bloques que se apilan si es muy estrecho o fluyen juntos -->
+            <div class="flex-1 min-w-0 h-full flex flex-col [@media(min-width:480px)]:flex-row justify-between [@media(min-width:480px)]:items-center gap-1 sm:gap-4 overflow-hidden">
+              
+              <!-- Nombre y Nivel -->
+              <div class="flex flex-row [@media(min-width:480px)]:flex-col justify-between [@media(min-width:480px)]:justify-center shrink-0 min-w-0">
+                <span class="text-[length:clamp(12px,min(2.8cqh,3.6cqw),28px)] text-white font-bold leading-none truncate">${h.name}</span>
+                <div class="text-[length:clamp(11px,min(2.4cqh,3cqw),24px)] text-white leading-none mt-0.5 [@media(min-width:480px)]:mt-1">
+                  <span class="ff7-label mr-1.5 font-bold">Level:</span><span class="font-mono">${h.level}</span>
                 </div>
               </div>
 
-              <div class="flex justify-between items-baseline text-lg sm:text-2xl md:text-3xl leading-none">
-                <span class="ff7-label">next level:</span>
-                <span>${h.next}<small class="text-sm sm:text-xl ml-0.5">P</small></span>
+              <!-- EXP actual, barra rosa/salmón y next level -->
+              <div class="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                <div class="flex justify-between items-baseline text-[length:clamp(10px,min(2.3cqh,2.8cqw),22px)] leading-tight">
+                  <span class="ff7-label font-bold">EXP:</span>
+                  <span class="font-mono text-white">${h.exp}<small class="text-[0.8em] ml-0.5">P</small></span>
+                </div>
+
+                <!-- Barra de progreso de nivel estilo FF7 -->
+                <div class="w-full bg-zinc-700 p-0.5 border border-zinc-400">
+                  <div class="ff7-slot h-[1.2cqh] min-h-[6px] max-h-[14px] w-full">
+                    <div class="h-full bg-gradient-to-b from-red-200 via-rose-400 to-red-500" style="width:${h.barPct}%"></div>
+                  </div>
+                </div>
+
+                <div class="flex justify-between items-baseline text-[length:clamp(10px,min(2.3cqh,2.8cqw),22px)] leading-tight">
+                  <span class="ff7-label font-bold">next level:</span>
+                  <span class="font-mono text-white">${h.next}<small class="text-[0.8em] ml-0.5">P</small></span>
+                </div>
               </div>
+
             </div>
 
           </div>
@@ -1265,6 +1276,11 @@ export class FF7Minigame {
     window.removeEventListener('keydown', this.keyHandler);
     window.removeEventListener('resize', this.padResizeListener);
     this.audio.stopBGM();
+
+    // Asegurar que el botón de salida del hub vuelva a ser visible
+    const exitHubBtn = document.getElementById('btn-exit-game');
+    if (exitHubBtn) exitHubBtn.classList.remove('invisible');
+
     if (this.battleScene) {
       this.battleScene.destroy();
     }

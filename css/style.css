@@ -70,6 +70,46 @@ body {
 #webgl-canvas {
   image-rendering: pixelated;
 }
+
+/* =========================================================================
+   CONTROL DE VOLUMEN PS1 (Mobile-First y Desktop)
+   ========================================================================= */
+.ps1-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  background: #181824;
+  border: 2px solid #52525b;
+  outline: none;
+  box-shadow: inset 1px 1px 0px #000;
+  touch-action: none;
+}
+
+.ps1-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(180deg, #facc15 0%, #ca8a04 100%);
+  border: 2px solid #ffffff;
+  box-shadow: inset -2px -2px 0px #713f12, inset 2px 2px 0px #fef08a, 0 2px 4px rgba(0,0,0,0.8);
+  cursor: pointer;
+}
+
+.ps1-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(180deg, #facc15 0%, #ca8a04 100%);
+  border: 2px solid #ffffff;
+  box-shadow: inset -2px -2px 0px #713f12, inset 2px 2px 0px #fef08a, 0 2px 4px rgba(0,0,0,0.8);
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.ps1-range:focus {
+  outline: none;
+}
 /* =========================================================================
    ADAPTACIÓN MÓVIL (Especialmente modo Horizontal / Landscape como la foto)
    ========================================================================= */
@@ -151,4 +191,28 @@ body {
 .ps1-action-btn:active {
   transform: scale(0.9);
   background: rgba(60, 60, 80, 0.95);
+}
+
+/* =========================================================================
+   FORZAR MODO HORIZONTAL EN MÓVIL (Bloqueo de Portrait)
+   ========================================================================= */
+#orientation-overlay {
+  display: none;
+}
+
+@media screen and (orientation: portrait) and (max-width: 920px) {
+  #orientation-overlay {
+    display: flex !important;
+  }
+}
+
+@keyframes ps1-rotate-phone {
+  0%, 15%   { transform: rotate(0deg); }
+  45%, 75%  { transform: rotate(-90deg); }
+  90%, 100% { transform: rotate(0deg); }
+}
+
+.rotate-phone-icon {
+  display: inline-block;
+  animation: ps1-rotate-phone 2.2s ease-in-out infinite;
 }
