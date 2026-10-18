@@ -1,5 +1,9 @@
 # TALLER 1 WEB MOVIL
-
+## Integrantes:
+- Rodrigo Cortés
+- Enzo Díaz
+- Dan Gomez
+- Ulices Ramírez
 ---
 
 ## POTATO DEX — PS1 Demo Disc & Recetario Interactivo
